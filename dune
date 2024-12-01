@@ -1,3 +1,6 @@
 (executable
   (name input)
   (libraries cohttp cohttp-lwt-unix lwt.unix))
+
+(executable
+  (name day01))

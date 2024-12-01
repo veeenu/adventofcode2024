@@ -14,11 +14,11 @@ let cookie =
   content |> String.trim
 
 let input_url day =
-  Printf.sprintf "https://adventofcode.com/2023/day/%d/input" day
+  Printf.sprintf "https://adventofcode.com/2024/day/%d/input" day
   |> Uri.of_string
 
 let save_input day body =
-  let path = Printf.sprintf "./input/%d.txt" day in
+  let path = Printf.sprintf "./_input/day%02d.txt" day in
   Lwt_io.with_file ~mode:Lwt_io.Output path (fun fp -> Lwt_io.write fp body)
 
 let download_input day =
