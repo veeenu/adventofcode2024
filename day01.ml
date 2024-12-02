@@ -22,9 +22,6 @@ let list1, list2 =
 let part1 =
   List.combine list1 list2
   |> List.map (fun (a, b) -> b - a |> abs)
-  |> List.map (fun x ->
-         Printf.printf "%d\n" x;
-         x)
   |> List.fold_left ( + ) 0
 
 let () = Printf.printf "Part1: %d\n" part1

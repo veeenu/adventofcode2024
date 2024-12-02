@@ -11,6 +11,7 @@ let test_case =
   |}
   |> split_lines
 
+let day_lines = read_day_lines 2
 let parse line = String.split_on_char ' ' line |> List.map int_of_string
 
 let rec pairs list =
@@ -33,4 +34,25 @@ let part1 input =
   |> List.fold_left (fun acc safe -> acc + if safe then 1 else 0) 0
 
 let () = assert (part1 test_case = 2)
-let () = read_day_lines 2 |> part1 |> Printf.printf "Part 1: %d\n" 
+let () = day_lines |> part1 |> Printf.printf "Part 1: %d\n"
+
+(* Part 2 *)
+
+let rec remove_nth n list =
+  match list with
+  | [] -> []
+  | _ :: xs when n = 0 -> xs
+  | x :: xs -> x :: remove_nth (n - 1) xs
+
+let permutations list = list :: List.mapi (fun i _ -> remove_nth i list) list
+
+let is_safe2 line =
+  line |> parse |> permutations |> List.map pairs |> List.map diffs
+  |> List.exists is_safe
+
+let part2 input =
+  input |> List.map is_safe2
+  |> List.fold_left (fun acc safe -> acc + if safe then 1 else 0) 0
+
+let () = assert (part2 test_case = 4)
+let () = day_lines |> part2 |> Printf.printf "Part 2: %d\n"
