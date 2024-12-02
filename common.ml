@@ -8,3 +8,6 @@ let read_day_lines day: string list =
     with End_of_file -> List.rev acc
   in
   read_lines []
+
+let split_lines string =
+  string |> String.trim |> String.split_on_char '\n'
