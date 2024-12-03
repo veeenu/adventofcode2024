@@ -2,6 +2,10 @@
   (name input)
   (libraries cohttp cohttp-lwt-unix lwt.unix))
 
+(env
+  (dev
+    (flags (:standard -warn-error -A))))
+
 (executable
   (name day01))
 
