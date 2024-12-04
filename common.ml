@@ -5,3 +5,5 @@ let read_day_lines day: string list =
 
 let split_lines string =
   string |> String.trim |> String.split_on_char '\n'
+
+let to_char_ll l = l |> List.map (fun x -> x |> String.to_seq |> List.of_seq)
