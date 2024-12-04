@@ -27,11 +27,12 @@ struct
   let char_at x y = List.nth (List.nth input y) x
   let w = List.length (List.nth input 0)
   let h = List.length input
-  let range start count inc = List.init count (fun i -> start + (i * inc))
-  let dir_n y = if y >= 3 then Some [ y; y - 1; y - 2; y - 3 ] else None
-  let dir_s y = if y <= h - 4 then Some [ y; y + 1; y + 2; y + 3 ] else None
-  let dir_w x = if x >= 3 then Some [ x; x - 1; x - 2; x - 3 ] else None
-  let dir_e x = if x <= w - 4 then Some [ x; x + 1; x + 2; x + 3 ] else None
+  let range_up start count = List.init count (fun i -> start + i)
+  let range_dn start count = List.init count (fun i -> start - i)
+  let dir_n y = if y >= 3 then Some (range_dn y 4) else None
+  let dir_s y = if y <= h - 4 then Some (range_up y 4) else None
+  let dir_w x = if x >= 3 then Some (range_dn x 4) else None
+  let dir_e x = if x <= w - 4 then Some (range_up x 4) else None
   let case_horiz xs y = Option.map (fun xs -> List.combine xs [ y; y; y; y ]) xs
   let case_vert x ys = Option.map (fun ys -> List.combine [ x; x; x; x ] ys) ys
 
@@ -51,14 +52,13 @@ struct
 
   let is_xmas xys =
     xys
-    |> List.filter (fun (x, y) -> char_at x y = 'X')
     |> List.combine [ 'X'; 'M'; 'A'; 'S' ]
     |> List.for_all (fun (c, (x, y)) -> char_at x y == c)
 
   let indices =
     List.concat_map
-      (fun y -> List.map (fun x -> (x, y)) (range 0 h 1))
-      (range 0 w 1)
+      (fun y -> List.map (fun x -> (x, y)) (range_up 0 h))
+      (range_up 0 w)
 
   let count_xmas_at (x, y) =
     List.fold_left ( + ) 0
@@ -68,7 +68,11 @@ struct
       |> List.map is_xmas
       |> List.map (function true -> 1 | false -> 0))
 
-  let part1 = List.fold_left ( + ) 0 (indices |> List.map count_xmas_at)
+  let part1 =
+    List.fold_left ( + ) 0
+      (indices
+      |> List.filter (fun (x, y) -> char_at x y = 'X')
+      |> List.map count_xmas_at)
 end
 
 module TestCase = Day04 (struct
