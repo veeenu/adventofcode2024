@@ -68,8 +68,16 @@ struct
     | [] -> true
 
   let middle xs = List.nth xs (List.length xs / 2)
-  let middle_ordered_values = List.filter is_ordered paths |> List.map middle
-  let part1 = List.fold_left ( + ) 0 middle_ordered_values
+
+  let part1 =
+    List.filter is_ordered paths |> List.map middle |> List.fold_left ( + ) 0
+
+  let is_unordered path = is_ordered path |> not
+  let sort_path = List.sort (fun a b -> if is_before a b then -1 else 1)
+
+  let part2 =
+    paths |> List.filter is_unordered |> List.map sort_path |> List.map middle
+    |> List.fold_left ( + ) 0
 end
 
 module TestCase = Day05 (struct
@@ -80,4 +88,7 @@ module DayInput = Day05 (struct
   let input = read_day_lines 5
 end)
 
+let () = assert (TestCase.part1 = 143)
+let () = assert (TestCase.part2 = 123)
 let () = printf "Part 1: %d\n" DayInput.part1
+let () = printf "Part 2: %d\n" DayInput.part2
