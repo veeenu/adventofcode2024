@@ -14,9 +14,9 @@ SAXAMASAAA
 MAMMMXMMMM
 MXMXAXMASX
 |}
-  |> String.trim |> String.split_on_char '\n' |> to_char_ll
+  |> String.trim |> String.split_on_char '\n' |> to_grid
 
-let day_input = read_day_lines 4 |> to_char_ll
+let day_input = read_day_lines 4 |> to_grid
 
 module Day04 (Input : sig
   val input : char list list
