@@ -63,7 +63,7 @@ module Day06 (AocInput : AocInput) = struct
     | OutOfBounds
     | Obstacle of direction
 
-  let part1 () =
+  let original_path =
     let try_move x y dir =
       let nx, ny =
         match dir with
@@ -80,11 +80,13 @@ module Day06 (AocInput : AocInput) = struct
     let rec step visited x y dir =
       let () = Hashtbl.replace visited (x, y) () in
       try_move x y dir |> function
-      | OutOfBounds -> Hashtbl.length visited
+      | OutOfBounds -> visited
       | Obstacle ndir -> step visited x y ndir
       | Moved (nx, ny) -> step visited nx ny dir
     in
     step (Hashtbl.create 0) start_x start_y start_dir
+
+  let part1 () = original_path |> Hashtbl.length
 
   let try_with_obstacle ox oy =
     let try_move x y dir =
@@ -118,7 +120,8 @@ module Day06 (AocInput : AocInput) = struct
     step (Hashtbl.create 0) start_x start_y start_dir
 
   let part2 () =
-    Grid.indices cells
+    Hashtbl.to_seq original_path
+    |> List.of_seq |> List.map fst
     |> List.filter (fun (x, y) ->
            Grid.at cells x y != Obstacle && not (x == start_x && y == start_y))
     |> List.map (fun (x, y) -> try_with_obstacle x y)
