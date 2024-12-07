@@ -33,12 +33,6 @@ module Day06 (AocInput : AocInput) = struct
     | '<' -> Guard West
     | _ -> raise InvalidInput
 
-  let char_of_dir = function
-    | South -> 'v'
-    | North -> '^'
-    | East -> '>'
-    | West -> '<'
-
   let turn = function
     | North -> East
     | East -> South
