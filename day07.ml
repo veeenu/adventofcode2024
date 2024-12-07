@@ -61,13 +61,10 @@ type operator2 = Sum | Mul | Cons
 
 let ops_set2 numbers = prod [ Sum; Mul; Cons ] (List.length numbers - 1)
 
-(* let rec log n = if n > 1 then 1 + log (n / 10) else 0 in *)
-(* let rec log n = if n = 1 then 0 else 1 + (log [@tailcall]) (n / 10) in *)
-(* let rec pow base exp = if exp = 0 then 1 else base * pow base (exp - 1) in *)
-
 let cons x y =
-  let thousands n = float_of_int n |> log10 |> Float.trunc |> Float.pow 10. |> Float.to_int in
-  (x * (thousands y) * 10) + y
+  let rec log10 n = if n > 9 then 1 + log10 (n / 10) else 0 in
+  let rec pow10 exp = if exp = 0 then 1 else 10 * pow10 (exp - 1) in
+  x * (pow10 (log10 y)) * 10 + y
 
 let apply2 numbers ops =
   let hd = List.hd numbers in
