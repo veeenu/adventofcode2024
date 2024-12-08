@@ -59,12 +59,6 @@ module Day06 (AocInput : AocInput) = struct
     | c when c == '.' -> Empty
     | c -> raise (Invalid (sprintf "freq_of_char %c" c))
 
-  let char_of_freq = function
-    | i when i >= 0 && i <= 9 -> Char.chr (i + Char.code '0')
-    | i when i >= 10 && i < 36 -> Char.chr (i - 10 + Char.code 'a')
-    | i when i >= 36 && i < 62 -> Char.chr (i - 36 + Char.code 'A')
-    | _ -> raise (Invalid "char_of_freq")
-
   let grid = Grid.of_lines freq_of_char input
   let freq_positions = Array.make 62 []
 
@@ -89,13 +83,39 @@ module Day06 (AocInput : AocInput) = struct
   let valid_antinode (x, y) = Grid.is_in_bounds grid x y
 
   let antinodes l =
-    l
-    |> List.map candidate_antinodes
-    |> List.flatten |> List.filter valid_antinode
+    List.map candidate_antinodes l |> List.flatten |> List.filter valid_antinode
+
+  let freq_pairs = freq_positions |> Array.map pairs |> Array.to_list
 
   let part1 =
-    freq_positions |> Array.map pairs |> Array.to_list |> List.map antinodes
-    |> List.flatten
+    freq_pairs |> List.map antinodes |> List.flatten
+    |> List.sort_uniq (fun (x1, y1) (x2, y2) -> compare (y1, x1) (y2, x2))
+    |> List.length
+
+  let candidate_harmonic_antinodes pair =
+    let p1, p2 = pair in
+    let distances ((x1, y1), (x2, y2)) =
+      ((x1 - x2, y1 - y2), (x2 - x1, y2 - y1))
+    in
+    let d1, d2 = distances pair in
+    let rec candidate_harmonic_antinode (x, y) (dx, dy) =
+      let cx, cy = (x + dx, y + dy) in
+      if Grid.is_in_bounds grid cx cy then
+        (cx, cy) :: candidate_harmonic_antinode (cx, cy) (dx, dy)
+      else []
+    in
+    candidate_harmonic_antinode p1 d1 @ candidate_harmonic_antinode p2 d2
+
+  let harmonic_antinodes l =
+    List.map candidate_harmonic_antinodes l |> List.flatten
+
+  let part2 =
+    let antennae = Array.to_list freq_positions |> List.flatten in
+    let harmonic_antinodes =
+      List.map harmonic_antinodes freq_pairs |> List.flatten
+    in
+
+    antennae @ harmonic_antinodes
     |> List.sort_uniq (fun (x1, y1) (x2, y2) -> compare (y1, x1) (y2, x2))
     |> List.length
 end
@@ -108,5 +128,7 @@ module DayInput = Day06 (struct
   let input = read_day_lines 8
 end)
 
-let () = printf "Part 1 test case: %d\n" TestCase.part1
+let () = printf "Test 1: %d\n" TestCase.part1
 let () = printf "Part 1: %d\n" DayInput.part1
+let () = printf "Test 2: %d\n" TestCase.part2
+let () = printf "Part 2: %d\n" DayInput.part2
