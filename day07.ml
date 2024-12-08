@@ -74,19 +74,6 @@ let apply2 numbers ops =
       match op with Sum -> acc + num | Mul -> acc * num | Cons -> cons acc num)
     hd ops tl
 
-let inspect fn list =
-  List.map
-    (fun x ->
-      fn x;
-      x)
-    list
-
-let print_ops_set l =
-  List.iter
-    (fun x ->
-      printf "%s" (match x with Sum -> "sum" | Mul -> "mul" | Cons -> "con"))
-    l
-
 let find_matches2 (sum, numbers) =
   ops_set2 numbers |> List.map (apply2 numbers) |> List.map (( = ) sum)
 

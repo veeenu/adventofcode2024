@@ -9,6 +9,13 @@ let to_grid l = l |> List.map (fun x -> x |> String.to_seq |> List.of_seq)
 let range_up start count = List.init count (fun i -> start + i)
 let range_dn start count = List.init count (fun i -> start - i)
 
+let inspect fn list =
+  List.map
+    (fun x ->
+      fn x;
+      x)
+    list
+
 module type AocInput = sig
   val input : string list
 end
@@ -21,6 +28,8 @@ module Grid : sig
   val height : 'a t -> int
   val at : 'a t -> int -> int -> 'a
   val indices : 'a t -> (int * int) list
+  val items : 'a t -> (int * int * 'a) list
+  val is_in_bounds: 'a t -> int -> int -> bool
 end = struct
   type 'a t = 'a list list
 
@@ -36,4 +45,8 @@ end = struct
     let range_h = range_up 0 (height t) in
     List.map (fun y -> List.map (fun x -> (x, y)) range_w) range_h
     |> List.flatten
+
+  let items t = indices t |> List.map (fun (x, y) -> (x, y, at t x y))
+
+  let is_in_bounds t x y = (x >= 0) && (y >= 0) && (x < width t) && (y < height t)
 end
