@@ -20,6 +20,8 @@ let inspect_one fn el =
   let () = fn el in
   el
 
+let comparexy (x1, y1) (x2, y2) = compare (y1, x1) (y2, x2)
+
 module type AocInput = sig
   val input : string list
 end
