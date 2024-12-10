@@ -1,10 +1,7 @@
 open Common
 open Printf
-open Scanf
 
 let test_case = {|2333133121414131402|}
-
-exception Unreachable
 
 let parse input =
   let rec take_pairs = function
@@ -22,12 +19,6 @@ let rec many_of n value = if n > 0 then value :: many_of (n - 1) value else []
 
 let expand id (file_block, space_block) =
   many_of file_block (File id) @ many_of space_block Empty
-
-let dbg l =
-  let () =
-    Array.iter (function File id -> printf "%d" id | Empty -> printf ".") l
-  in
-  printf "\n"
 
 let checksum fs =
   let checksum_value idx = function File id -> idx * id | Empty -> 0 in
