@@ -18,7 +18,6 @@ module Day10 (AocInput : AocInput) = struct
   open AocInput
 
   let grid = input |> Grid.of_lines (fun c -> int_of_char c - int_of_char '0')
-  let () = printf "%d x %d\n" (Grid.width grid) (Grid.height grid)
 
   let trails_memo : (int * int, (int * int) list list) Hashtbl.t =
     Hashtbl.create 1024
@@ -28,7 +27,6 @@ module Day10 (AocInput : AocInput) = struct
   let east x y = (x + 1, y)
   let west x y = (x - 1, y)
 
-  (* let rec trailheads xsrc ysrc xdst ydst = *)
   let rec descend_trailheads xsrc ysrc =
     match Hashtbl.find_opt trails_memo (xsrc, ysrc) with
     | Some trailheads -> trailheads
@@ -50,7 +48,6 @@ module Day10 (AocInput : AocInput) = struct
   let () =
     Grid.items grid
     |> List.filter (fun (_, _, v) -> v = 9)
-    (* |> inspect (fun (x, y, v) -> printf "Grid has: %d %d %d\n" x y v) *)
     |> List.iter (fun (x, y, _) ->
            let _ = descend_trailheads x y in
            ())
@@ -79,11 +76,6 @@ module Day10 (AocInput : AocInput) = struct
            acc)
          (Hashtbl.create 10)
     |> Hashtbl.to_seq
-
-  let () =
-    trailheadstails
-    |> List.iter (fun ((x, y), (x1, y1)) ->
-           printf "(%d, %d) -> (%d, %d) \n" x y x1 y1)
 
   let part1 =
     trailheads_scores |> List.of_seq |> List.map snd |> List.fold_left ( + ) 0
