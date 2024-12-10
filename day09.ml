@@ -29,6 +29,10 @@ let dbg l =
   in
   printf "\n"
 
+let checksum fs =
+  let checksum_value idx = function File id -> idx * id | Empty -> 0 in
+  Array.mapi checksum_value fs |> Array.fold_left ( + ) 0
+
 let part1 input =
   let fs = List.mapi expand input |> List.flatten |> Array.of_list in
 
@@ -64,12 +68,57 @@ let part1 input =
 
   let () = dbg fs in
 
-  let checksum =
-    let checksum_value idx = function File id -> idx * id | Empty -> 0 in
-    Array.mapi checksum_value fs |> Array.fold_left ( + ) 0
+  checksum fs
+
+let part2 input =
+  let fs = input |> List.mapi (fun id (file, space) -> (id, file, space)) in
+  let rfs = List.rev fs in
+
+  let swap_slots fs id (rid, rfile, rspace) =
+    fs
+    |> List.map (fun (vid, vfile, vspace) ->
+           if vid = id then [ (vid, vfile, 0); (rid, rfile, vspace - rfile) ]
+           else if vid = rid then [ (rid, 0, rfile + rspace) ]
+           else [ (vid, vfile, vspace) ])
+    |> List.flatten
   in
 
-  checksum
+  let find_slot fs rid rfile =
+    fs
+    |> List.filter (fun (id, _, _) -> id <= rid)
+    |> List.find_opt (fun (_, _, space) -> space >= rfile)
+    |> Option.map (fun (id, _, _) -> id)
+  in
+
+  let try_swap_slots fs (rid, rfile, rspace) =
+    find_slot fs rid rfile |> function
+    | Some id -> swap_slots fs id (rid, rfile, rspace)
+    | None -> fs
+  in
+
+  let rec defrag rev_fs fs =
+    match rev_fs with
+    | [] -> fs
+    | hd :: tl ->
+        try_swap_slots fs hd
+        |> inspect_one (fun xs ->
+               printf "[%d]: " (hd |> fun (x, _, _) -> x);
+               xs
+               |> List.map (fun (id, file, space) -> expand id (file, space))
+               |> List.flatten |> Array.of_list |> dbg)
+        |> defrag tl
+  in
+
+  let new_fs =
+    defrag rfs fs
+    |> List.map (fun (id, file, space) -> expand id (file, space))
+    |> List.flatten |> Array.of_list
+  in
+  let () = dbg new_fs in
+
+  checksum new_fs
 
 let () = printf "Test 1: %d\n" (parse test_case |> part1)
 let () = printf "Part 1: %d\n" (parse (read_day_lines 9 |> List.hd) |> part1)
+let () = printf "Test 2: %d\n" (parse test_case |> part2)
+(* let () = printf "Part 2: %d\n" (parse (read_day_lines 9 |> List.hd) |> part2) *)

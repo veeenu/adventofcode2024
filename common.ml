@@ -16,6 +16,10 @@ let inspect fn list =
       x)
     list
 
+let inspect_one fn el =
+  let () = fn el in
+  el
+
 module type AocInput = sig
   val input : string list
 end
@@ -29,7 +33,7 @@ module Grid : sig
   val at : 'a t -> int -> int -> 'a
   val indices : 'a t -> (int * int) list
   val items : 'a t -> (int * int * 'a) list
-  val is_in_bounds: 'a t -> int -> int -> bool
+  val is_in_bounds : 'a t -> int -> int -> bool
 end = struct
   type 'a t = 'a list list
 
@@ -47,6 +51,5 @@ end = struct
     |> List.flatten
 
   let items t = indices t |> List.map (fun (x, y) -> (x, y, at t x y))
-
-  let is_in_bounds t x y = (x >= 0) && (y >= 0) && (x < width t) && (y < height t)
+  let is_in_bounds t x y = x >= 0 && y >= 0 && x < width t && y < height t
 end
