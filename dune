@@ -35,3 +35,6 @@
 
 (executable
   (name day10))
+
+(executable
+  (name day11))
