@@ -22,6 +22,8 @@ let inspect_one fn el =
 
 let comparexy (x1, y1) (x2, y2) = compare (y1, x1) (y2, x2)
 
+exception Unreachable
+
 module type AocInput = sig
   val input : string list
 end
@@ -54,4 +56,21 @@ end = struct
 
   let items t = indices t |> List.map (fun (x, y) -> (x, y, at t x y))
   let is_in_bounds t x y = x >= 0 && y >= 0 && x < width t && y < height t
+end
+
+module Memo : sig
+  val empty : unit -> ('a, 'b) Hashtbl.t
+  val exists : ('a, 'b) Hashtbl.t -> 'a -> bool
+  val memo : ('a, 'b) Hashtbl.t -> 'a -> ('a -> 'b) -> 'b
+end = struct
+  let empty () = Hashtbl.create 64
+  let exists = Hashtbl.mem
+
+  let memo t key fn =
+    Hashtbl.find_opt t key |> function
+    | Some value -> value
+    | None ->
+        let value = fn key in
+        let () = Hashtbl.replace t key value in
+        value
 end
