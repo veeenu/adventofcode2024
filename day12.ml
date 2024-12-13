@@ -76,34 +76,11 @@ module Day12 (AocInput : AocInput) = struct
 
   type dir = North | South | West | East
 
-  let cw = function
-    | North -> East
-    | East -> South
-    | South -> West
-    | West -> North
-
-  let ccw = function
-    | North -> West
-    | East -> North
-    | South -> East
-    | West -> South
-
-  let fwd x = x
-  let back d = d |> cw |> cw
-
   let fun_of_dir = function
     | North -> north
     | East -> east
     | South -> south
     | West -> west
-
-  let char_of_dir = function
-    | North -> 'N'
-    | South -> 'S'
-    | West -> 'W'
-    | East -> 'E'
-
-  let move f d x y = (f d, (f d |> fun_of_dir) x y)
 
   let perimeter cluster =
     let boundaries (x, y) =
@@ -140,10 +117,6 @@ module Day12 (AocInput : AocInput) = struct
         | [], [] -> 0
         | cur :: curs, next :: nexts ->
             let switch2 = switch_type (cur, next) in
-            let () =
-              printf "(%d, %d) (%d, %d) %d\n" (fst cur) (snd cur) (fst next)
-                (snd next) (count_switch switch2)
-            in
             if switch != switch2 then
               count_switch switch2 + count_runs_inner curs nexts switch2
             else count_runs_inner curs nexts switch2
@@ -157,7 +130,6 @@ module Day12 (AocInput : AocInput) = struct
       | _ -> raise Unreachable
     in
     let count_runs_col x =
-      let () = printf "col %d\n" x in
       let col1, col2 =
         range_up (min_y - 1) (max_y - min_y + 2)
         |> List.map (fun y -> ((x, y), (x + 1, y)))
@@ -166,7 +138,6 @@ module Day12 (AocInput : AocInput) = struct
       count_runs col1 col2
     in
     let count_runs_row y =
-      let () = printf "row %d\n" y in
       let row1, row2 =
         range_up (min_x - 1) (max_x - min_x + 2)
         |> List.map (fun x -> ((x, y), (x, y + 1)))
@@ -178,7 +149,6 @@ module Day12 (AocInput : AocInput) = struct
       range_up (min_x - 1) (max_x - min_x + 2)
       |> List.map count_runs_col |> List.fold_left ( + ) 0
     in
-    let () = printf "---\n" in
     let sides_y =
       range_up (min_y - 1) (max_y - min_y + 2)
       |> List.map count_runs_row |> List.fold_left ( + ) 0
@@ -186,20 +156,11 @@ module Day12 (AocInput : AocInput) = struct
     (sides_x, sides_y)
 
   let measurements =
-    clusters
-    |> List.map (fun (c, cluster) ->
-           let () = printf "Cluster %c:\n  " c in
-           let () =
-             Hashtbl.iter (fun (x, y) _ -> printf "(%d %d) " x y) cluster
-           in
-           let () = printf "\n%!" in
+    clusters |> List.map snd
+    |> List.map (fun cluster ->
            let area = area cluster in
            let perimeter = perimeter cluster in
            let sides_x, sides_y = sides cluster in
-           let () =
-             printf "  area %d perimeter %d sides %d %d price %d%!\n" area
-               perimeter sides_x sides_y (area * perimeter)
-           in
            (area, perimeter, sides_x + sides_y))
 
   let part1 =
@@ -222,7 +183,6 @@ module DayInput = Day12 (struct
 end)
 
 let () = printf "Test 1: %d%!\n" TestCase.part1
-
 let () = printf "Part 1: %d%!\n" DayInput.part1
 let () = printf "Test 2: %d%!\n" TestCase.part2
 let () = printf "Part 2: %d%!\n" DayInput.part2
