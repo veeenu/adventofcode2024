@@ -74,14 +74,6 @@ module Day12 (AocInput : AocInput) = struct
 
   let () = color_print AocInput.input
 
-  type dir = North | South | West | East
-
-  let fun_of_dir = function
-    | North -> north
-    | East -> east
-    | South -> south
-    | West -> west
-
   let perimeter cluster =
     let boundaries (x, y) =
       [ north; south; east; west ]
