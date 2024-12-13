@@ -24,8 +24,6 @@ Prize: X=18641, Y=10279
 
 let day_input = read_day_lines 13
 
-type block = (int * int) * (int * int) * (int * int)
-
 let parse_block button_a button_b prize =
   let ax, ay = sscanf button_a "Button A: X+%d, Y+%d" (fun x y -> (x, y)) in
   let bx, by = sscanf button_b "Button B: X+%d, Y+%d" (fun x y -> (x, y)) in
@@ -38,20 +36,20 @@ let rec parse = function
   | [ button_a; button_b; prize ] -> parse_block button_a button_b prize :: []
   | _ -> raise Unreachable
 
-let combinations =
-  range_up 0 100
-  |> List.map (fun x -> range_up 0 100 |> List.map (fun y -> (x, y)))
+let combinations min_n max_n =
+  range_up min_n (max_n - min_n)
+  |> List.map (fun x ->
+         range_up min_n (max_n - min_n) |> List.map (fun y -> (x, y)))
   |> List.flatten
 
-let winning_combinations ((ax, ay), (bx, by), (px, py)) =
+let winning_combinations combinations ((ax, ay), (bx, by), (px, py)) =
   combinations
   |> List.filter (fun (i, j) ->
          ((i * ax) + (j * bx), (i * ay) + (j * by)) = (px, py))
 
 let combination_cost a b = (a * 3) + b
 
-let best_combination block =
-  block |> winning_combinations |> function
+let least_costly = function
   | [] -> None
   | l ->
       Some
@@ -61,20 +59,57 @@ let best_combination block =
              if cost' < cost then (a', b', cost') else (a, b, cost))
            (0, 0, max_int) l)
 
+let best_combination combinations block =
+  block |> winning_combinations combinations |> least_costly
+
 let part1 input =
-  input |> parse |> List.map best_combination
-  |> inspect (function
-       | None -> printf "No solution found\n"
-       | Some (a, b, cost) -> printf "Cost %d: (%d, %d)\n" cost a b)
+  input |> parse
+  |> List.map (best_combination (combinations 0 100))
   |> List.filter_map (function None -> None | Some (_, _, c) -> Some c)
   |> List.fold_left ( + ) 0
 
+let adjust_claw (a, b, (px, py)) =
+  (a, b, (px + 10000000000000, py + 10000000000000))
+
+(* let is_winning i j ((ax, ay), (bx, by), (px, py)) = *)
+(*   px mod ((i * ax) + (j * bx)) = 0 && py mod ((i * ay) + (j * by)) = 0 *)
+(**)
+(* let winning_div i j ((ax, ay), (bx, by), (px, py)) = *)
+(*   let mi = px / ((i * ax) + (j * bx)) in *)
+(*   let mj = py / ((i * ay) + (j * by)) in *)
+(*   (mi * i, mj * j) *)
+
+(* let find_winning block = *)
+(*   prime_combinations 10000 *)
+(*   |> List.filter (fun (i, j) -> i != 0 || j != 0) *)
+(*   |> List.filter (fun (i, j) -> is_winning i j block) *)
+(*   |> List.map (fun (i, j) -> winning_div i j block) *)
+(**)
+(* let part2 input = *)
+(*   input |> parse |> List.map adjust_claw *)
+(*   |> List.filter_map (fun candidates -> *)
+(*          find_winning candidates |> least_costly |> function *)
+(*          | None -> None *)
+(*          | Some (_, _, c) -> Some c) *)
+(*   |> List.fold_left ( + ) 0 *)
+
 (*
-the minimum for X is goign to be PX / max(ax, bx)
-the maximum for X is goign to be PX / min(ax, bx)
-the minimum for Y is goign to be PY / may(ay, by)
-the maximum for Y is goign to be PY / min(ay, by)
+   we do a smallish combination set but we check whether px is divisible by i ax + j bx
+   px mod (i ax + j bx) = 0 -> px / (i ax + j bx) 
  *)
 
-let () = printf "Test 1: %d\n" (part1 test_case)
-let () = printf "Part 1: %d\n" (part1 day_input)
+let rec gcd a b = if b = 0 then a else gcd b (a mod b)
+
+let divisors a b =
+  let gcd = gcd a b in
+  let () = printf "gcd %d%!\n" gcd in
+  (* range_up 1 (gcd |> float |> sqrt |> int_of_float) *)
+  range_up 1 gcd |> List.filter (fun x -> gcd mod x = 0)
+
+let () = divisors 8400 5400 |> List.iter (fun x -> printf "%d%!\n" x)
+(* divisors 10000000008400 10000000005400 |> List.iter (fun x -> printf "%d%!\n" x) *)
+
+(* let () = printf "Test 1: %d%!\n" (part1 test_case) *)
+(* let () = printf "Part 1: %d%!\n" (part1 day_input) *)
+(* let () = printf "Test 2: %d%!\n" (part2 test_case) *)
+(* let () = printf "Part 2: %d%!\n" (part2 day_input) *)
