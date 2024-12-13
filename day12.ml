@@ -116,7 +116,76 @@ module Day12 (AocInput : AocInput) = struct
 
   let area = Hashtbl.length
 
-  let part1 =
+  type run = Both | Entering | Leaving
+
+  let sides cluster =
+    let s = Hashtbl.to_seq cluster |> Seq.map (fun (k, _) -> k) in
+    let minmax =
+      Seq.fold_left (fun (mina, maxa) b -> (min mina b, max maxa b)) (max_int, 0)
+    in
+    let min_x, max_x = s |> Seq.map fst |> minmax in
+    let min_y, max_y = s |> Seq.map snd |> minmax in
+    let mem = Hashtbl.mem cluster in
+    let switch_type (p, q) =
+      match (mem p, mem q) with
+      | true, true | false, false -> Both
+      | true, false -> Leaving
+      | false, true -> Entering
+    in
+    let count_switch = function Leaving | Entering -> 1 | Both -> 0 in
+    let count_runs curs nexts =
+      let () = assert (List.length curs = List.length nexts) in
+      let rec count_runs_inner curs nexts switch =
+        match (curs, nexts) with
+        | [], [] -> 0
+        | cur :: curs, next :: nexts ->
+            let switch2 = switch_type (cur, next) in
+            let () =
+              printf "(%d, %d) (%d, %d) %d\n" (fst cur) (snd cur) (fst next)
+                (snd next) (count_switch switch2)
+            in
+            if switch != switch2 then
+              count_switch switch2 + count_runs_inner curs nexts switch2
+            else count_runs_inner curs nexts switch2
+        | _ -> raise Unreachable
+      in
+      match (curs, nexts) with
+      | [], [] -> 0
+      | cur :: curs, next :: nexts ->
+          let switch = switch_type (cur, next) in
+          count_switch switch + count_runs_inner curs nexts switch
+      | _ -> raise Unreachable
+    in
+    let count_runs_col x =
+      let () = printf "col %d\n" x in
+      let col1, col2 =
+        range_up (min_y - 1) (max_y - min_y + 2)
+        |> List.map (fun y -> ((x, y), (x + 1, y)))
+        |> List.split
+      in
+      count_runs col1 col2
+    in
+    let count_runs_row y =
+      let () = printf "row %d\n" y in
+      let row1, row2 =
+        range_up (min_x - 1) (max_x - min_x + 2)
+        |> List.map (fun x -> ((x, y), (x, y + 1)))
+        |> List.split
+      in
+      count_runs row1 row2
+    in
+    let sides_x =
+      range_up (min_x - 1) (max_x - min_x + 2)
+      |> List.map count_runs_col |> List.fold_left ( + ) 0
+    in
+    let () = printf "---\n" in
+    let sides_y =
+      range_up (min_y - 1) (max_y - min_y + 2)
+      |> List.map count_runs_row |> List.fold_left ( + ) 0
+    in
+    (sides_x, sides_y)
+
+  let measurements =
     clusters
     |> List.map (fun (c, cluster) ->
            let () = printf "Cluster %c:\n  " c in
@@ -126,12 +195,22 @@ module Day12 (AocInput : AocInput) = struct
            let () = printf "\n%!" in
            let area = area cluster in
            let perimeter = perimeter cluster in
+           let sides_x, sides_y = sides cluster in
            let () =
-             printf "  area %d perimeter %d price %d%!\n" area perimeter
-               (area * perimeter)
+             printf "  area %d perimeter %d sides %d %d price %d%!\n" area
+               perimeter sides_x sides_y (area * perimeter)
            in
-           (area, perimeter))
-    |> List.fold_left (fun acc (area, perimeter) -> acc + (area * perimeter)) 0
+           (area, perimeter, sides_x + sides_y))
+
+  let part1 =
+    measurements
+    |> List.fold_left
+         (fun acc (area, perimeter, _) -> acc + (area * perimeter))
+         0
+
+  let part2 =
+    measurements
+    |> List.fold_left (fun acc (area, _, sides) -> acc + (area * sides)) 0
 end
 
 module TestCase = Day12 (struct
@@ -143,4 +222,7 @@ module DayInput = Day12 (struct
 end)
 
 let () = printf "Test 1: %d%!\n" TestCase.part1
+
 let () = printf "Part 1: %d%!\n" DayInput.part1
+let () = printf "Test 2: %d%!\n" TestCase.part2
+let () = printf "Part 2: %d%!\n" DayInput.part2
