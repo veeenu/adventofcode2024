@@ -80,3 +80,35 @@ let part1 mx my robots =
 
 let () = test_case |> List.map parse |> part1 11 7 |> printf "Test 1: %d\n"
 let () = day_input |> List.map parse |> part1 101 103 |> printf "Part 1: %d\n"
+
+let print_sim i robots =
+  let m = simulate_all_count robots 101 103 i in
+  range_up 0 103
+  |> List.iter (fun y ->
+         let () =
+           range_up 0 101
+           |> List.map (fun x ->
+                  if Hashtbl.mem m (x, y) then "\x1b[31m#\x1b[0m"
+                  else "\x1b[30m.\x1b[0m")
+           |> List.iter (printf "%s")
+         in
+         printf "\n")
+
+let robots = day_input |> List.map parse
+
+let check_candidate i =
+  let m = simulate_all_count robots 101 103 i in
+  let has_ten_consecutive_robots row =
+    range_up 0 91
+    |> List.exists (fun col ->
+           List.for_all (fun d -> Hashtbl.mem m (col + d, row)) (range_up 0 10))
+  in
+  range_up 0 103 |> List.exists has_ten_consecutive_robots
+
+let () =
+  range_up 0 10000
+  |> List.iter (fun i ->
+         if check_candidate i then
+           let () = printf "\nFOUND: %d%!\n\n\n" i in
+           print_sim i robots
+         else printf "NOT FOUND: %d%!\r" i)
