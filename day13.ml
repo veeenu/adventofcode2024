@@ -36,38 +36,6 @@ let rec parse = function
   | [ button_a; button_b; prize ] -> parse_block button_a button_b prize :: []
   | _ -> raise Unreachable
 
-let combinations min_n max_n =
-  range_up min_n (max_n - min_n)
-  |> List.map (fun x ->
-         range_up min_n (max_n - min_n) |> List.map (fun y -> (x, y)))
-  |> List.flatten
-
-let winning_combinations combinations ((ax, ay), (bx, by), (px, py)) =
-  combinations
-  |> List.filter (fun (i, j) ->
-         ((i * ax) + (j * bx), (i * ay) + (j * by)) = (px, py))
-
-let combination_cost a b = (a * 3) + b
-
-let least_costly = function
-  | [] -> None
-  | l ->
-      Some
-        (List.fold_left
-           (fun (a, b, cost) (a', b') ->
-             let cost' = combination_cost a' b' in
-             if cost' < cost then (a', b', cost') else (a, b, cost))
-           (0, 0, max_int) l)
-
-let best_combination combinations block =
-  block |> winning_combinations combinations |> least_costly
-
-let part1 input =
-  input |> parse
-  |> List.map (best_combination (combinations 0 100))
-  |> List.filter_map (function None -> None | Some (_, _, c) -> Some c)
-  |> List.fold_left ( + ) 0
-
 let rec gcd a b = if b = 0 then a else gcd b (a mod b)
 let lcm a b = a * b / gcd a b
 
@@ -97,11 +65,6 @@ let gauss ((ax, ay), (bx, by), (px, py)) =
   let d = px - (j * bx) in
   let i = d / ax in
   if py mod by = 0 && d mod ax = 0 then Some (i, j) else None
-
-let print_gauss block =
-  gauss block |> function
-  | Some (i, j) -> printf "NUMBERSSS \x1b[32m%d %d\x1b[0m%!\n----------\n" i j
-  | None -> printf "None\n----------\n"
 
 let part1 input =
   input |> parse |> List.filter_map gauss
