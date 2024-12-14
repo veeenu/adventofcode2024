@@ -36,12 +36,6 @@ let simulate_count mx my count (px, py, vx, vy) =
   in
   simulate px py count
 
-let cycle_length (px, py, vx, vy) mx my =
-  let rec simulate px' py' =
-    if (px, py) = (px', py') then 0 else 1 + simulate (px + vx) (py + vy)
-  in
-  simulate (modulo (px + vx) mx) (modulo (py + vy) my)
-
 let simulate_all_count robots mx my count =
   robots
   |> List.map (simulate_count mx my count)
