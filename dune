@@ -44,3 +44,6 @@
 
 (executable
   (name day13))
+
+(executable
+  (name day14))

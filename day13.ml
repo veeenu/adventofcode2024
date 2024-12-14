@@ -68,48 +68,52 @@ let part1 input =
   |> List.filter_map (function None -> None | Some (_, _, c) -> Some c)
   |> List.fold_left ( + ) 0
 
+let rec gcd a b = if b = 0 then a else gcd b (a mod b)
+let lcm a b = a * b / gcd a b
+
 let adjust_claw (a, b, (px, py)) =
   (a, b, (px + 10000000000000, py + 10000000000000))
 
-(* let is_winning i j ((ax, ay), (bx, by), (px, py)) = *)
-(*   px mod ((i * ax) + (j * bx)) = 0 && py mod ((i * ay) + (j * by)) = 0 *)
-(**)
-(* let winning_div i j ((ax, ay), (bx, by), (px, py)) = *)
-(*   let mi = px / ((i * ax) + (j * bx)) in *)
-(*   let mj = py / ((i * ay) + (j * by)) in *)
-(*   (mi * i, mj * j) *)
+let print ((ax, ay), (bx, by), (px, py)) =
+  printf "---\n%di + %dj + %d = 0\n%di + %dj + %d = 0\n\n" ax bx px ay by py
 
-(* let find_winning block = *)
-(*   prime_combinations 10000 *)
-(*   |> List.filter (fun (i, j) -> i != 0 || j != 0) *)
-(*   |> List.filter (fun (i, j) -> is_winning i j block) *)
-(*   |> List.map (fun (i, j) -> winning_div i j block) *)
-(**)
-(* let part2 input = *)
-(*   input |> parse |> List.map adjust_claw *)
-(*   |> List.filter_map (fun candidates -> *)
-(*          find_winning candidates |> least_costly |> function *)
-(*          | None -> None *)
-(*          | Some (_, _, c) -> Some c) *)
-(*   |> List.fold_left ( + ) 0 *)
+let gauss ((ax, ay), (bx, by), (px, py)) =
+  let lcm = lcm ax ay in
+  let () = printf "lcm=%d\n" lcm in
+  let (ax, ay), (bx, by), (px, py) =
+    ((ax * lcm, ay), (bx * lcm, by), (px * lcm, py))
+  in
+  let () = print ((ax, ay), (bx, by), (px, py)) in
+  let (ax, ay), (bx, by), (px, py) =
+    let factor = -ax / ay in
+    ((ax, ay * factor), (bx, by * factor), (px, py * factor))
+  in
+  let () = print ((ax, ay), (bx, by), (px, py)) in
+  let (ax, ay), (bx, by), (px, py) =
+    ((ax, ay + ax), (bx, by + bx), (px, py + px))
+  in
+  let () = print ((ax, ay), (bx, by), (px, py)) in
+  let j = py / by in
+  let d = px - (j * bx) in
+  let i = d / ax in
+  if py mod by = 0 && d mod ax = 0 then Some (i, j) else None
 
-(*
-   we do a smallish combination set but we check whether px is divisible by i ax + j bx
-   px mod (i ax + j bx) = 0 -> px / (i ax + j bx) 
- *)
+let print_gauss block =
+  gauss block |> function
+  | Some (i, j) -> printf "NUMBERSSS \x1b[32m%d %d\x1b[0m%!\n----------\n" i j
+  | None -> printf "None\n----------\n"
 
-let rec gcd a b = if b = 0 then a else gcd b (a mod b)
+let part1 input =
+  input |> parse |> List.filter_map gauss
+  |> List.map (fun (a, b) -> (a * 3) + b)
+  |> List.fold_left ( + ) 0
 
-let divisors a b =
-  let gcd = gcd a b in
-  let () = printf "gcd %d%!\n" gcd in
-  (* range_up 1 (gcd |> float |> sqrt |> int_of_float) *)
-  range_up 1 gcd |> List.filter (fun x -> gcd mod x = 0)
+let part2 input =
+  input |> parse |> List.map adjust_claw |> List.filter_map gauss
+  |> List.map (fun (a, b) -> (a * 3) + b)
+  |> List.fold_left ( + ) 0
 
-let () = divisors 8400 5400 |> List.iter (fun x -> printf "%d%!\n" x)
-(* divisors 10000000008400 10000000005400 |> List.iter (fun x -> printf "%d%!\n" x) *)
-
-(* let () = printf "Test 1: %d%!\n" (part1 test_case) *)
-(* let () = printf "Part 1: %d%!\n" (part1 day_input) *)
-(* let () = printf "Test 2: %d%!\n" (part2 test_case) *)
-(* let () = printf "Part 2: %d%!\n" (part2 day_input) *)
+let () = printf "Test 1: %d%!\n" (part1 test_case)
+let () = printf "Part 1: %d%!\n" (part1 day_input)
+let () = printf "Test 2: %d%!\n" (part2 test_case)
+let () = printf "Part 2: %d%!\n" (part2 day_input)
