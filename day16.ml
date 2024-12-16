@@ -25,9 +25,23 @@ let day_input = read_day_lines 16
 
 type cell = Wall | Start | End | Space
 
+module GraphTbl = Hashtbl.Make (struct
+  type t = int * int * direction
+
+  let equal i j = i = j
+
+  let hash (i, j, d) =
+    i + (1000 * j)
+    + (d |> function
+       | North -> 100000
+       | South -> 200000
+       | East -> 300000
+       | West -> 400000)
+end)
+
 let tbl_push tbl k v =
-  Hashtbl.replace tbl k
-    (Hashtbl.find_opt tbl k |> function None -> v :: [] | Some l -> v :: l)
+  GraphTbl.replace tbl k
+    (GraphTbl.find_opt tbl k |> function None -> v :: [] | Some l -> v :: l)
 
 let turn_cost (d1 : direction) (d2 : direction) =
   match (d1, d2) with
@@ -43,8 +57,8 @@ let turn_cost (d1 : direction) (d2 : direction) =
       1001
   | North, South | South, North | West, East | East, West -> 2002
 
-type day16_graph =
-  (int * int * direction, (int * int * direction * int) list) Hashtbl.t
+type day16_graph = (int * int * direction * int) list GraphTbl.t
+(* (int * int * direction, (int * int * direction * int) list) Hashtbl.t *)
 
 let parse input =
   let grid =
@@ -71,7 +85,7 @@ let parse input =
                            tbl_push acc (x, y, dc) (nx, ny, d, turn_cost dc d)))
            in
            acc)
-         (Hashtbl.create 100)
+         (GraphTbl.create 100)
   in
   let start_x, start_y =
     grid |> Grid.items
@@ -88,48 +102,54 @@ let parse input =
 
 let dijkstra (graph : day16_graph) start =
   let unvisited =
-    Hashtbl.to_seq graph |> Seq.map fst
+    GraphTbl.to_seq graph |> Seq.map fst
     |> Seq.fold_left
          (fun acc p ->
-           let _ = Hashtbl.replace acc p () in
+           let _ = GraphTbl.replace acc p () in
            acc)
-         (Hashtbl.create (Hashtbl.length graph))
+         (GraphTbl.create (GraphTbl.length graph))
   in
   let distances =
-    Hashtbl.to_seq graph |> Seq.map fst
+    GraphTbl.to_seq graph |> Seq.map fst
     |> Seq.fold_left
          (fun acc p ->
-           let _ = Hashtbl.replace acc p (if p = start then 0 else max_int) in
+           let _ = GraphTbl.replace acc p (if p = start then 0 else max_int) in
            acc)
-         (Hashtbl.create (Hashtbl.length graph))
+         (GraphTbl.create (GraphTbl.length graph))
+  in
+  let preds =
+    GraphTbl.to_seq graph |> Seq.map fst
+    |> Seq.fold_left
+         (fun acc p ->
+           let _ = GraphTbl.replace acc p [] in
+           acc)
+         (GraphTbl.create (GraphTbl.length graph))
   in
   let update_distance node =
     let _ =
-      Hashtbl.find graph node
+      GraphTbl.find graph node
+      |> List.filter (fun (x, y, d, _) -> GraphTbl.mem unvisited (x, y, d))
       |> List.iter (fun (x, y, d, cost) ->
-             let base_cost = Hashtbl.find distances node in
-             let current_cost = Hashtbl.find distances (x, y, d) in
+             let base_cost = GraphTbl.find distances node in
+             let current_cost = GraphTbl.find distances (x, y, d) in
              let new_cost = cost + base_cost in
              if new_cost < current_cost then
-               Hashtbl.replace distances (x, y, d) new_cost)
+               GraphTbl.replace distances (x, y, d) new_cost)
     in
-    let _ = Hashtbl.remove unvisited node in
+    let _ = GraphTbl.remove unvisited node in
     ()
   in
   let rec dijkstra_step () =
-    let _ = printf "Left %d%!\n" (Hashtbl.length unvisited) in
-    let candidates =
-      Hashtbl.to_seq unvisited
-      |> Seq.map (fun (node, _) -> (node, Hashtbl.find distances node))
-      |> Seq.filter (fun (_, cost) -> cost != max_int)
-      |> List.of_seq
-      |> List.sort (fun (_, acost) (_, bcost) -> compare acost bcost)
-    in
-    if List.length candidates = 0 then ()
-    else
-      let node, _ = List.hd candidates in
-      let _ = update_distance node in
-      dijkstra_step ()
+    GraphTbl.fold
+      (fun node () (mnode, mcost) ->
+        let cost = GraphTbl.find distances node in
+        if cost < mcost then (Some node, cost) else (mnode, mcost))
+      unvisited (None, max_int)
+    |> function
+    | None, _ -> ()
+    | Some node, _ ->
+        let _ = update_distance node in
+        dijkstra_step ()
   in
   let _ = dijkstra_step () in
   distances
@@ -139,9 +159,39 @@ let part1 input =
   let distances = dijkstra graph (sx, sy, East) in
   let candidates =
     [ North; South; West; East ]
-    |> List.filter_map (fun d -> Hashtbl.find_opt distances (tx, ty, d))
+    |> List.filter_map (fun d -> GraphTbl.find_opt distances (tx, ty, d))
   in
   List.fold_left (fun acc i -> min acc i) max_int candidates
 
+let part2 input =
+  let graph, (sx, sy), (tx, ty) = input |> parse in
+  let distances = dijkstra graph (sx, sy, East) in
+  0
+
+(* let rec walk node = *)
+(*   let node_cost = Hashtbl.find distances node in *)
+(*   let neighbors = *)
+(*     Hashtbl.find graph node *)
+(*     |> List.map (fun (x, y, d, _) -> *)
+(*            ((x, y, d), Hashtbl.find distances (x, y, d))) *)
+(*   in *)
+(*   let min_cost = *)
+(*     neighbors *)
+(*     |> List.map (fun (_, cost) -> cost) *)
+(*     |> List.filter (fun cost -> cost >= node_cost) *)
+(*     |> List.fold_left min max_int *)
+(*   in *)
+(*   let _ = *)
+(*     let x, y, _ = node in *)
+(*     printf "Walk %d,%d nodecost %d mincost %d\n" x y node_cost min_cost *)
+(*   in *)
+(*   neighbors *)
+(*   |> List.filter_map (fun (c, cost) -> *)
+(*          if cost = min_cost then Some c else None) *)
+(*   |> List.map walk |> List.fold_left ( + ) 1 *)
+(* in *)
+(* walk (sx, sy, East) *)
+
 let () = part1 test_case |> printf "Test 1: %d\n"
+let () = part2 test_case |> printf "Test 2: %d\n"
 let () = part1 day_input |> printf "Part 1: %d\n"
