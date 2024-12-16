@@ -42,17 +42,44 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
 |}
   |> String.trim |> String.split_on_char '\n'
 
+let test_case3 =
+  {|
+#######
+#...#.#
+#.....#
+#..OO@#
+#..O..#
+#.....#
+#######
+
+<vv<<^^<<^^
+|}
+  |> String.trim |> String.split_on_char '\n'
+
 let day_input = read_day_lines 15
 
 type field_items = Empty | Crate | Wall
+type field_items2 = Empty | CrateL | CrateR | Wall
 
-type input_state = {
-  grid : field_items array array;
+type 'a input_state = {
+  grid : 'a array array;
   movements : direction list;
   position : int * int;
 }
 
-let parse input =
+let field_map1 : char -> field_items list = function
+  | '#' -> [ Wall ]
+  | 'O' -> [ Crate ]
+  | '.' | '@' -> [ Empty ]
+  | _ -> raise Unreachable
+
+let field_map2 : char -> field_items2 list = function
+  | '#' -> [ Wall; Wall ]
+  | 'O' -> [ CrateL; CrateR ]
+  | '.' | '@' -> [ Empty; Empty ]
+  | _ -> raise Unreachable
+
+let parse field_map input =
   let non_empty s = not (String.equal (String.trim s) "") in
   let grid_lines = input |> take_while non_empty in
   let position =
@@ -63,13 +90,8 @@ let parse input =
   let grid =
     grid_lines
     |> List.map (fun line ->
-           line |> String.trim |> String.to_seq
-           |> Seq.map (function
-                | '#' -> Wall
-                | 'O' -> Crate
-                | '.' | '@' -> Empty
-                | _ -> raise Unreachable)
-           |> Array.of_seq)
+           line |> String.trim |> String.to_seq |> List.of_seq
+           |> List.map field_map |> List.flatten |> Array.of_list)
     |> Array.of_list
   in
   let movements =
@@ -85,18 +107,26 @@ let parse input =
   in
   { position; grid; movements }
 
+let parse1 = parse field_map1
+
+let parse2 input =
+  let { position = x, y; grid; movements } = parse field_map2 input in
+  let position = (x * 2, y) in
+  { position; grid; movements }
+
 let print_grid grid position =
   let () =
     Array.iteri
       (fun y row ->
         let () =
           row
-          |> Array.mapi (fun x cell ->
+          |> Array.mapi (fun x (cell : field_items2) ->
                  match cell with
                  | _ when position = (x, y) -> '@'
                  | Wall -> '#'
                  | Empty -> '.'
-                 | Crate -> 'O')
+                 | CrateL -> '['
+                 | CrateR -> ']')
           |> Array.iter (printf "%c")
         in
         printf "\n")
@@ -104,44 +134,181 @@ let print_grid grid position =
   in
   printf "\n"
 
-let rec apply_movement state =
-  let rec pull grid (x, y) dir count =
-    let nx, ny = Direction.move dir (x, y) in
-    let t = grid.(y).(x) in
-    let () = grid.(y).(x) <- grid.(ny).(nx) in
-    let () = grid.(ny).(nx) <- t in
-    if count = 0 then true else pull grid (nx, ny) dir (count - 1)
-  in
+let swap grid (x, y) (nx, ny) =
+  let t = grid.(y).(x) in
+  let () = grid.(y).(x) <- grid.(ny).(nx) in
+  let () = grid.(ny).(nx) <- t in
+  ()
 
-  let rec try_push grid position dir count =
+let rec pull1 grid (x, y) dir count =
+  let nx, ny = Direction.move dir (x, y) in
+  let () = swap grid (x, y) (nx, ny) in
+  if count = 0 then true else pull1 grid (nx, ny) dir (count - 1)
+
+let rec try_push1 (grid : field_items array array) position dir count =
+  let nx, ny = Direction.move dir position in
+  match grid.(ny).(nx) with
+  | Wall -> false
+  | Empty -> pull1 grid (nx, ny) (Direction.flip dir) count
+  | Crate -> try_push1 grid (nx, ny) dir (count + 1)
+
+let move1 (grid : field_items array array) position dir =
+  let nx, ny = Direction.move dir position in
+  match grid.(ny).(nx) with
+  | Wall -> (grid, position)
+  | Empty -> (grid, (nx, ny))
+  | Crate ->
+      if try_push1 grid (nx, ny) dir 0 then (grid, (nx, ny))
+      else (grid, position)
+
+type push_action =
+  | Clear of (int * int)
+  | SetL of (int * int)
+  | SetR of (int * int)
+
+let combine l r = match (l, r) with Some l, Some r -> Some (l @ r) | _ -> None
+
+let rec push_horiz2 (grid : field_items2 array array) position dir =
+  let () = assert (dir = East || dir = West) in
+  let nx, ny = Direction.move dir position in
+  match grid.(ny).(nx) with
+  | Wall -> None
+  | Empty -> Some []
+  | CrateL ->
+      combine
+        (push_horiz2 grid (nx, ny) dir)
+        (Some
+           [ Clear position; SetR (nx, ny); SetL (Direction.move dir (nx, ny)) ])
+  | CrateR ->
+      combine
+        (push_horiz2 grid (nx, ny) dir)
+        (Some
+           [ Clear position; SetL (nx, ny); SetR (Direction.move dir (nx, ny)) ])
+
+let rec push_vert2 (grid : field_items2 array array) position dir =
+  let () = assert (dir = North || dir = South) in
+
+  (* let push_vert2_inner position = *)
+  (*   let nx, ny = Direction.move dir position in *)
+  (*   match grid.(ny).(nx) with *)
+  (*   | Wall -> None *)
+  (*   | Empty -> Some [] *)
+  (*   | CrateL -> *)
+  (*       combine *)
+  (*         (push_vert2 grid (nx, ny) dir) *)
+  (*         (Some *)
+  (*            [ *)
+  (*              Clear position; *)
+  (*              Clear (Direction.move East position); *)
+  (*              SetL (nx, ny); *)
+  (*              SetR (Direction.move East (nx, ny)); *)
+  (*            ]) *)
+  (*   | CrateR -> *)
+  (*       combine *)
+  (*         (push_vert2 grid (nx, ny) dir) *)
+  (*         (Some *)
+  (*            [ *)
+  (*              Clear position; *)
+  (*              Clear (Direction.move West position); *)
+  (*              SetR (nx, ny); *)
+  (*              SetL (Direction.move West (nx, ny)); *)
+  (*            ]) *)
+  (* in *)
+  let push_crate position side =
     let nx, ny = Direction.move dir position in
+    let moves =
+      match side with
+      | CrateL ->
+          [
+            Clear position;
+            Clear (Direction.move East position);
+            SetL (nx, ny);
+            SetR (Direction.move East (nx, ny));
+          ]
+      | CrateR ->
+          [
+            Clear position;
+            Clear (Direction.move West position);
+            SetR (nx, ny);
+            SetL (Direction.move West (nx, ny));
+          ]
+      | _ -> raise Unreachable
+    in
     match grid.(ny).(nx) with
-    | Wall -> false
-    | Empty -> pull grid (nx, ny) (Direction.flip dir) count
-    | Crate -> try_push grid (nx, ny) dir (count + 1)
+    | Wall -> None
+    | Empty -> Some moves
+    | CrateL -> combine (push_vert2 grid (nx, ny) dir) (Some moves)
+    | CrateR -> combine (push_vert2 grid (nx, ny) dir) (Some moves)
   in
 
-  let move grid position dir =
-    let nx, ny = Direction.move dir position in
+  let x, y = position in
+  match grid.(y).(x) with
+  | Wall -> None
+  | Empty -> Some []
+  | CrateL ->
+      combine
+        (push_crate position CrateL)
+        (push_crate (Direction.move East position) CrateR)
+  | CrateR ->
+      combine
+        (push_crate position CrateR)
+        (push_crate (Direction.move West position) CrateL)
+
+let rec push2 (grid : field_items2 array array) position dir =
+  match dir with
+  | East | West -> push_horiz2 grid position dir
+  | North | South -> push_vert2 grid position dir
+
+let apply (grid : field_items2 array array) changes =
+  let () =
+    changes
+    |> List.filter_map (function Clear (x, y) -> Some (x, y) | _ -> None)
+    |> List.iter (fun (x, y) -> grid.(y).(x) <- Empty)
+  in
+  let () =
+    changes
+    |> List.filter_map (function SetL (x, y) -> Some (x, y) | _ -> None)
+    |> List.iter (fun (x, y) -> grid.(y).(x) <- CrateL)
+  in
+  let () =
+    changes
+    |> List.filter_map (function SetR (x, y) -> Some (x, y) | _ -> None)
+    |> List.iter (fun (x, y) -> grid.(y).(x) <- CrateR)
+  in
+  ()
+
+let try_push2 (grid : field_items2 array array) position dir =
+  let nx, ny = Direction.move dir position in
+  match push2 grid (nx, ny) dir with
+  | Some swaps ->
+      (* let _ = swaps |> List.rev |> List.iter (fun (a, b) -> swap grid a b) in *)
+      let _ = swaps |> apply grid in
+      (grid, (nx, ny))
+  | None -> (grid, position)
+
+let move2 (grid : field_items2 array array) position dir =
+  let nx, ny = Direction.move dir position in
+  (* let _ = print_grid grid position in *)
+  let grid, position =
     match grid.(ny).(nx) with
     | Wall -> (grid, position)
     | Empty -> (grid, (nx, ny))
-    | Crate ->
-        if try_push grid (nx, ny) dir 0 then (grid, (nx, ny))
-        else (grid, position)
+    | CrateR | CrateL -> try_push2 grid position dir
   in
+  (grid, position)
 
+let rec apply_movement move state =
   match state.movements with
   | [] -> state
   | hd :: movements ->
       let grid, position = move state.grid state.position hd in
-      apply_movement { grid; movements; position }
+      apply_movement move { grid; movements; position }
 
-let compute_gps state =
+let compute_gps target state =
   state.grid
   |> Array.mapi (fun y row ->
          Array.mapi
-           (fun x cell -> if cell == Crate then Some (x, y) else None)
+           (fun x cell -> if cell == target then Some (x, y) else None)
            row
          |> Array.to_list
          |> List.filter_map (fun x -> x))
@@ -149,15 +316,14 @@ let compute_gps state =
   |> List.map (fun (x, y) -> x + (100 * y))
   |> List.fold_left ( + ) 0
 
-let part1 state = apply_movement state |> compute_gps
-let () = test_case1 |> parse |> part1 |> printf "Test 1: %d\n"
-let () = test_case2 |> parse |> part1 |> printf "Test 1: %d\n"
-let () = day_input |> parse |> part1 |> printf "Part 1: %d\n"
+let part1 input = input |> parse1 |> apply_movement move1 |> compute_gps Crate
+let part2 input = input |> parse2 |> apply_movement move2 |> compute_gps CrateL
 
-(* let state = test_case2 |> parse in *)
-(* let () = print_grid state.grid state.position in *)
-(* let state = apply_movement state in *)
-(* let () = print_grid state.grid state.position in *)
-(* let () = printf "%d\n" (compute_gps state) in *)
-(**)
-(* () *)
+let () = test_case1 |> part1 |> printf "Test 1: %d\n"
+let () = test_case2 |> part1 |> printf "Test 1: %d\n"
+let () = day_input |> part1 |> printf "Part 1: %d\n"
+
+let () = test_case1 |> part2 |> printf "Test 2: %d\n"
+let () = test_case2 |> part2 |> printf "Test 2: %d\n"
+let () = test_case3 |> part2 |> printf "Test 2: %d\n"
+let () = day_input |> part2 |> printf "Part 2: %d\n"

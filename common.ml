@@ -41,6 +41,8 @@ end
 
 type direction = North | South | East | West
 
+let char_of_direction = function | North -> 'N' | South -> 'S' | East -> 'E' | West -> 'W'
+
 module Direction : sig
   val move : direction -> int * int -> int * int
   val cw: direction -> direction
