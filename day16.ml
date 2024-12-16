@@ -1,7 +1,7 @@
 open Common
 open Printf
 
-let test_case =
+let test_case1 =
   {|
 ###############
 #.......#....E#
@@ -18,6 +18,28 @@ let test_case =
 #.###.#.#.#.#.#
 #S..#.....#...#
 ###############
+|}
+  |> String.trim |> String.split_on_char '\n'
+
+let test_case2 =
+  {|
+#################
+#...#...#...#..E#
+#.#.#.#.#.#.#.#.#
+#.#.#.#...#...#.#
+#.#.#.#.###.#.#.#
+#...#.#.#.....#.#
+#.#.#.#.#.#####.#
+#.#...#.#.#.....#
+#.#.#####.#.###.#
+#.#.#.......#...#
+#.#.###.#####.###
+#.#.#...#.....#.#
+#.#.#.#####.###.#
+#.#.#.........#.#
+#.#.#.#########.#
+#S#.............#
+#################
 |}
   |> String.trim |> String.split_on_char '\n'
 
@@ -133,8 +155,10 @@ let dijkstra (graph : day16_graph) start =
              let base_cost = GraphTbl.find distances node in
              let current_cost = GraphTbl.find distances (x, y, d) in
              let new_cost = cost + base_cost in
-             if new_cost < current_cost then
-               GraphTbl.replace distances (x, y, d) new_cost)
+             if new_cost <= current_cost then
+               let () = GraphTbl.replace distances (x, y, d) new_cost in
+               let () = tbl_push preds (x, y, d) node in
+               ())
     in
     let _ = GraphTbl.remove unvisited node in
     ()
@@ -152,11 +176,11 @@ let dijkstra (graph : day16_graph) start =
         dijkstra_step ()
   in
   let _ = dijkstra_step () in
-  distances
+  (distances, preds)
 
 let part1 input =
   let graph, (sx, sy), (tx, ty) = input |> parse in
-  let distances = dijkstra graph (sx, sy, East) in
+  let distances, _ = dijkstra graph (sx, sy, East) in
   let candidates =
     [ North; South; West; East ]
     |> List.filter_map (fun d -> GraphTbl.find_opt distances (tx, ty, d))
@@ -165,33 +189,29 @@ let part1 input =
 
 let part2 input =
   let graph, (sx, sy), (tx, ty) = input |> parse in
-  let distances = dijkstra graph (sx, sy, East) in
-  0
+  let distances, preds = dijkstra graph (sx, sy, East) in
 
-(* let rec walk node = *)
-(*   let node_cost = Hashtbl.find distances node in *)
-(*   let neighbors = *)
-(*     Hashtbl.find graph node *)
-(*     |> List.map (fun (x, y, d, _) -> *)
-(*            ((x, y, d), Hashtbl.find distances (x, y, d))) *)
-(*   in *)
-(*   let min_cost = *)
-(*     neighbors *)
-(*     |> List.map (fun (_, cost) -> cost) *)
-(*     |> List.filter (fun cost -> cost >= node_cost) *)
-(*     |> List.fold_left min max_int *)
-(*   in *)
-(*   let _ = *)
-(*     let x, y, _ = node in *)
-(*     printf "Walk %d,%d nodecost %d mincost %d\n" x y node_cost min_cost *)
-(*   in *)
-(*   neighbors *)
-(*   |> List.filter_map (fun (c, cost) -> *)
-(*          if cost = min_cost then Some c else None) *)
-(*   |> List.map walk |> List.fold_left ( + ) 1 *)
-(* in *)
-(* walk (sx, sy, East) *)
+  let rec walk node =
+    node :: (GraphTbl.find preds node |> List.map walk |> List.flatten)
+  in
 
-let () = part1 test_case |> printf "Test 1: %d\n"
-let () = part2 test_case |> printf "Test 2: %d\n"
-let () = part1 day_input |> printf "Part 1: %d\n"
+  let candidates =
+    [ North; South; West; East ]
+    |> List.filter_map (fun d -> GraphTbl.find_opt distances (tx, ty, d))
+  in
+  let shortest_paths_length =
+    List.fold_left (fun acc i -> min acc i) max_int candidates
+  in
+  [ North; South; West; East ]
+  |> List.map (fun d -> (tx, ty, d))
+  |> List.filter (fun p -> GraphTbl.find distances p = shortest_paths_length)
+  |> List.map walk |> List.fold_left ( @ ) []
+  |> List.map (fun (x, y, _) -> (x, y))
+  |> List.sort_uniq compare |> List.length
+
+let () = part1 test_case1 |> printf "Test 1: %d%!\n"
+let () = part1 test_case2 |> printf "Test 1: %d%!\n"
+let () = part1 day_input |> printf "Part 1: %d%!\n"
+let () = part2 test_case1 |> printf "Test 2: %d%!\n"
+let () = part2 test_case2 |> printf "Test 2: %d%!\n"
+let () = part2 day_input |> printf "Part 2: %d%!\n"
