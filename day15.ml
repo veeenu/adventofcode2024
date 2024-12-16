@@ -272,11 +272,9 @@ let compute_gps target state =
 
 let part1 input = input |> parse1 |> apply_movement move1 |> compute_gps Crate
 let part2 input = input |> parse2 |> apply_movement move2 |> compute_gps CrateL
-
 let () = test_case1 |> part1 |> printf "Test 1: %d\n"
 let () = test_case2 |> part1 |> printf "Test 1: %d\n"
 let () = day_input |> part1 |> printf "Part 1: %d\n"
-
 let () = test_case1 |> part2 |> printf "Test 2: %d\n"
 let () = test_case2 |> part2 |> printf "Test 2: %d\n"
 let () = test_case3 |> part2 |> printf "Test 2: %d\n"
