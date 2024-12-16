@@ -114,26 +114,6 @@ let parse2 input =
   let position = (x * 2, y) in
   { position; grid; movements }
 
-let print_grid grid position =
-  let () =
-    Array.iteri
-      (fun y row ->
-        let () =
-          row
-          |> Array.mapi (fun x (cell : field_items2) ->
-                 match cell with
-                 | _ when position = (x, y) -> '@'
-                 | Wall -> '#'
-                 | Empty -> '.'
-                 | CrateL -> '['
-                 | CrateR -> ']')
-          |> Array.iter (printf "%c")
-        in
-        printf "\n")
-      grid
-  in
-  printf "\n"
-
 let swap grid (x, y) (nx, ny) =
   let t = grid.(y).(x) in
   let () = grid.(y).(x) <- grid.(ny).(nx) in
@@ -188,32 +168,6 @@ let rec push_horiz2 (grid : field_items2 array array) position dir =
 let rec push_vert2 (grid : field_items2 array array) position dir =
   let () = assert (dir = North || dir = South) in
 
-  (* let push_vert2_inner position = *)
-  (*   let nx, ny = Direction.move dir position in *)
-  (*   match grid.(ny).(nx) with *)
-  (*   | Wall -> None *)
-  (*   | Empty -> Some [] *)
-  (*   | CrateL -> *)
-  (*       combine *)
-  (*         (push_vert2 grid (nx, ny) dir) *)
-  (*         (Some *)
-  (*            [ *)
-  (*              Clear position; *)
-  (*              Clear (Direction.move East position); *)
-  (*              SetL (nx, ny); *)
-  (*              SetR (Direction.move East (nx, ny)); *)
-  (*            ]) *)
-  (*   | CrateR -> *)
-  (*       combine *)
-  (*         (push_vert2 grid (nx, ny) dir) *)
-  (*         (Some *)
-  (*            [ *)
-  (*              Clear position; *)
-  (*              Clear (Direction.move West position); *)
-  (*              SetR (nx, ny); *)
-  (*              SetL (Direction.move West (nx, ny)); *)
-  (*            ]) *)
-  (* in *)
   let push_crate position side =
     let nx, ny = Direction.move dir position in
     let moves =
@@ -254,7 +208,7 @@ let rec push_vert2 (grid : field_items2 array array) position dir =
         (push_crate position CrateR)
         (push_crate (Direction.move West position) CrateL)
 
-let rec push2 (grid : field_items2 array array) position dir =
+let push2 (grid : field_items2 array array) position dir =
   match dir with
   | East | West -> push_horiz2 grid position dir
   | North | South -> push_vert2 grid position dir
