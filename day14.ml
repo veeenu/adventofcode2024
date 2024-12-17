@@ -24,10 +24,6 @@ let day_input = read_day_lines 14
 let parse line =
   sscanf line "p=%d,%d v=%d,%d" (fun px py vx vy -> (px, py, vx, vy))
 
-let modulo x y =
-  let result = x mod y in
-  if result >= 0 then result else result + y
-
 let simulate_count mx my count (px, py, vx, vy) =
   let rec simulate px py count =
     if count > 0 then

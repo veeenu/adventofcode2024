@@ -9,6 +9,10 @@ let to_grid l = l |> List.map (fun x -> x |> String.to_seq |> List.of_seq)
 let range_up start count = List.init count (fun i -> start + i)
 let range_dn start count = List.init count (fun i -> start - i)
 
+let modulo x y =
+  let result = x mod y in
+  if result >= 0 then result else result + y
+
 let rec take_while pred l =
   match l with
   | [] -> []
@@ -41,13 +45,17 @@ end
 
 type direction = North | South | East | West
 
-let char_of_direction = function | North -> 'N' | South -> 'S' | East -> 'E' | West -> 'W'
+let char_of_direction = function
+  | North -> 'N'
+  | South -> 'S'
+  | East -> 'E'
+  | West -> 'W'
 
 module Direction : sig
   val move : direction -> int * int -> int * int
-  val cw: direction -> direction
-  val ccw: direction -> direction
-  val flip: direction -> direction
+  val cw : direction -> direction
+  val ccw : direction -> direction
+  val flip : direction -> direction
 end = struct
   let move d (x, y) =
     match d with
@@ -56,9 +64,23 @@ end = struct
     | South -> (x, y + 1)
     | West -> (x - 1, y)
 
-  let cw = function North -> East | East -> South | South -> West | West -> North
-  let ccw = function North -> West | West -> South | South -> East | East -> North
-  let flip = function North -> South | East -> West | South -> North | West -> East
+  let cw = function
+    | North -> East
+    | East -> South
+    | South -> West
+    | West -> North
+
+  let ccw = function
+    | North -> West
+    | West -> South
+    | South -> East
+    | East -> North
+
+  let flip = function
+    | North -> South
+    | East -> West
+    | South -> North
+    | West -> East
 end
 
 module Grid : sig
