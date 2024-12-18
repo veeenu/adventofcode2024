@@ -117,9 +117,7 @@ let part2 input w h =
   let x, y =
     Array.find_mapi
       (fun y row ->
-        Array.find_mapi
-          (fun x col -> if not col then Some (x, y) else None)
-          row)
+        Array.find_mapi (fun x col -> if not col then Some (x, y) else None) row)
       grid_cmp
     |> Option.get
   in
