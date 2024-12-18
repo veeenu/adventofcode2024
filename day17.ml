@@ -1,6 +1,7 @@
 open Common
 open Printf
 open Scanf
+open Int64
 
 let test_case =
   {|
@@ -12,46 +13,60 @@ Program: 0,1,5,4,3,0
 |}
   |> String.trim |> String.split_on_char '\n'
 
+let test_case2 =
+  {|
+Register A: 2024
+Register B: 0
+Register C: 0
+
+Program: 0,3,5,4,3,0
+|}
+  |> String.trim |> String.split_on_char '\n'
+
 let day_input = read_day_lines 17
 
 let parse input =
   let reg_a, input = (List.hd input, List.tl input) in
-  let reg_a = sscanf reg_a "Register A: %d" (fun x -> x) in
+  let reg_a = sscanf reg_a "Register A: %Lu" (fun x -> x) in
   let reg_b, input = (List.hd input, List.tl input) in
-  let reg_b = sscanf reg_b "Register B: %d" (fun x -> x) in
+  let reg_b = sscanf reg_b "Register B: %Lu" (fun x -> x) in
   let reg_c, input = (List.hd input, List.tl input) in
-  let reg_c = sscanf reg_c "Register C: %d" (fun x -> x) in
+  let reg_c = sscanf reg_c "Register C: %Lu" (fun x -> x) in
   let program = input |> List.tl |> List.hd in
   let program =
     String.sub program 9 (String.length program - 9)
-    |> String.split_on_char ',' |> List.map int_of_string
+    |> String.split_on_char ',' |> List.map of_string
   in
   (program, reg_a, reg_b, reg_c)
 
-let combo v a b c =
-  match v with
+let combo (v : int64) (a : int64) (b : int64) (c : int64) =
+  match to_int v with
   | 0 | 1 | 2 | 3 -> v
   | 4 -> a
   | 5 -> b
   | 6 -> c
   | _ -> raise Unreachable
 
-let rec pow base exp = if exp = 0 then 1 else base * pow base (exp - 1)
-let adv op a b c = (a / pow 2 (combo op a b c), b, c, None)
-let bxl op a b c = (a, b lxor op, c, None)
-let bst op a b c = (a, modulo (combo op a b c) 8, c, None)
-let jnz op a b c = if a = 0 then (a, b, c, None) else (a, b, c, Some op)
-let bxc _ a b c = (a, b lxor c, c, None)
+let adv op a b c =
+  (shift_right_logical a (combo op a b c |> to_int), b, c, None, None)
 
-let out op a b c =
-  let () = printf "%d," (modulo (combo op a b c) 8) in
-  (a, b, c, None)
+let bxl op a b c = (a, logxor b op, c, None, None)
+let bst op a b c = (a, logand (combo op a b c) 7L, c, None, None)
 
-let bdv op a b c = (a, a / pow 2 (combo op a b c), c, None)
-let cdv op a b c = (a, b, a / pow 2 (combo op a b c), None)
+let jnz op a b c =
+  if a = 0L then (a, b, c, None, None) else (a, b, c, Some op, None)
+
+let bxc _ a b c = (a, logxor b c, c, None, None)
+let out op a b c = (a, b, c, None, Some (logand (combo op a b c) 7L))
+
+let bdv op a b c =
+  (a, shift_right_logical a (combo op a b c |> to_int), c, None, None)
+
+let cdv op a b c =
+  (a, b, shift_right_logical a (combo op a b c |> to_int), None, None)
 
 let opcode inst =
-  match inst with
+  match to_int inst with
   | 0 -> adv
   | 1 -> bxl
   | 2 -> bst
@@ -63,7 +78,7 @@ let opcode inst =
   | _ -> raise Unreachable
 
 let string_of_opcode inst =
-  match inst with
+  match to_int inst with
   | 0 -> "adv"
   | 1 -> "bxl"
   | 2 -> "bst"
@@ -76,24 +91,72 @@ let string_of_opcode inst =
 
 let rec disasm = function
   | inst :: op :: xs ->
-      let () = printf "%s %d\n" (string_of_opcode inst) op in
+      let () = printf "%s %d\n" (string_of_opcode inst) (to_int op) in
       disasm xs
   | _ -> ()
 
-let rec interpret program ip a b c =
+let rec interpret (program : int64 list) ip a b c =
   if ip + 1 >= List.length program then ()
   else
     let inst = List.nth program ip in
     let op = List.nth program (ip + 1) in
-    let a, b, c, jmp = (opcode inst) op a b c in
+    let a, b, c, jmp, output = (opcode inst) op a b c in
+    let _ = output |> function Some x -> printf "%Lu," x | None -> () in
     match jmp with
     | None -> interpret program (ip + 2) a b c
-    | Some ip -> interpret program ip a b c
+    | Some ip -> interpret program (to_int ip) a b c
 
 let part1 input =
   let program, a, b, c = parse input in
   let _ = interpret program 0 a b c in
   ()
+
+let interpret2 (program : int64 list) a b c =
+  let rec interpret_step ip a b c xs =
+    if ip + 1 >= List.length program then (a, b, c, xs)
+    else
+      let inst = List.nth program ip in
+      let op = List.nth program (ip + 1) in
+      let a, b, c, jmp, output = (opcode inst) op a b c in
+      let xs = output |> function Some x -> x :: xs | None -> xs in
+      match jmp with
+      | None -> interpret_step (ip + 2) a b c xs
+      | Some ip -> interpret_step (to_int ip) a b c xs
+  in
+  interpret_step 0 a b c []
+
+let rinterpret program =
+  let rec rinterpret_step a b c count =
+    let () = printf "---\n" in
+    let candidates =
+      [ 0L; 1L; 2L; 3L; 4L; 5L; 6L; 7L ]
+      |> List.map (fun offset ->
+             (offset, interpret2 program (add a offset) b c))
+      (* |> List.filter (fun (_, _, _, result) -> cmp program (List.rev result)) *)
+      |> List.filter (fun (_, (_, _, _, result)) ->
+             List.nth program count = (result |> List.rev |> List.hd))
+    in
+    let () = printf "Candidates: %d:\n" count in
+    let () =
+      List.iter
+        (fun (offset, (_, b, c, result)) ->
+          let () = printf "%Ld %Ld %Ld -> " (add a offset) b c in
+          let () = List.iter (fun x -> printf "%Ld," x) result in
+          let () = printf ".\n" in
+          ())
+        candidates
+    in
+    if count = 0 then
+      candidates
+      |> List.map (fun (offset, (_, b, c, l)) ->
+             (add a offset, b, c, List.rev l))
+    else
+      candidates
+      |> List.map (fun (offset, (_, b, c, _)) ->
+             rinterpret_step (shift_left (add a offset) 3) b c (count - 1))
+      |> List.flatten
+  in
+  rinterpret_step 0L 0L 0L (List.length program - 1)
 
 let () = parse test_case |> fun (program, _, _, _) -> disasm program
 let () = printf "\nTest 1: "
@@ -102,3 +165,22 @@ let () = printf "\n\n"
 let () = parse day_input |> fun (program, _, _, _) -> disasm program
 let () = printf "\nPart 1: "
 let () = part1 day_input
+let () = printf "\n\n"
+let () = parse test_case2 |> fun (program, _, _, _) -> disasm program
+
+let part2 input =
+  let program, a, b, c = parse input in
+  let outcome = rinterpret program in
+  let () = printf "outcomes: %d\n" (List.length outcome) in
+  let () =
+    outcome
+    |> List.iter (fun (a, b, c, r) ->
+           let () = printf "\nA: %Ld B: %Ld C: %Ld\n  " a b c in
+           let () = List.iter (fun x -> printf "%Ld," x) r in
+           ())
+  in
+
+  List.fold_left (fun acc (a, b, c, r) -> min acc a) max_int outcome |> to_int
+
+let () = part2 test_case2 |> printf "Test 2: %d\n"
+let () = part2 day_input |> printf "Part 2: %d\n"
