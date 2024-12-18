@@ -127,29 +127,14 @@ let interpret2 (program : int64 list) a b c =
 
 let rinterpret program =
   let rec rinterpret_step a b c count =
-    let () = printf "---\n" in
     let candidates =
       [ 0L; 1L; 2L; 3L; 4L; 5L; 6L; 7L ]
       |> List.map (fun offset ->
              (offset, interpret2 program (add a offset) b c))
-      (* |> List.filter (fun (_, _, _, result) -> cmp program (List.rev result)) *)
       |> List.filter (fun (_, (_, _, _, result)) ->
              List.nth program count = (result |> List.rev |> List.hd))
     in
-    let () = printf "Candidates: %d:\n" count in
-    let () =
-      List.iter
-        (fun (offset, (_, b, c, result)) ->
-          let () = printf "%Ld %Ld %Ld -> " (add a offset) b c in
-          let () = List.iter (fun x -> printf "%Ld," x) result in
-          let () = printf ".\n" in
-          ())
-        candidates
-    in
-    if count = 0 then
-      candidates
-      |> List.map (fun (offset, (_, b, c, l)) ->
-             (add a offset, b, c, List.rev l))
+    if count = 0 then candidates |> List.map (fun (offset, _) -> add a offset)
     else
       candidates
       |> List.map (fun (offset, (_, b, c, _)) ->
@@ -169,18 +154,9 @@ let () = printf "\n\n"
 let () = parse test_case2 |> fun (program, _, _, _) -> disasm program
 
 let part2 input =
-  let program, a, b, c = parse input in
+  let program, _, _, _ = parse input in
   let outcome = rinterpret program in
-  let () = printf "outcomes: %d\n" (List.length outcome) in
-  let () =
-    outcome
-    |> List.iter (fun (a, b, c, r) ->
-           let () = printf "\nA: %Ld B: %Ld C: %Ld\n  " a b c in
-           let () = List.iter (fun x -> printf "%Ld," x) r in
-           ())
-  in
-
-  List.fold_left (fun acc (a, b, c, r) -> min acc a) max_int outcome |> to_int
+  List.fold_left min max_int outcome |> to_int
 
 let () = part2 test_case2 |> printf "Test 2: %d\n"
 let () = part2 day_input |> printf "Part 2: %d\n"
