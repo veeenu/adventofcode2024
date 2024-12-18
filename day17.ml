@@ -95,23 +95,7 @@ let rec disasm = function
       disasm xs
   | _ -> ()
 
-let rec interpret (program : int64 list) ip a b c =
-  if ip + 1 >= List.length program then ()
-  else
-    let inst = List.nth program ip in
-    let op = List.nth program (ip + 1) in
-    let a, b, c, jmp, output = (opcode inst) op a b c in
-    let _ = output |> function Some x -> printf "%Lu," x | None -> () in
-    match jmp with
-    | None -> interpret program (ip + 2) a b c
-    | Some ip -> interpret program (to_int ip) a b c
-
-let part1 input =
-  let program, a, b, c = parse input in
-  let _ = interpret program 0 a b c in
-  ()
-
-let interpret2 (program : int64 list) a b c =
+let interpret (program : int64 list) a b c =
   let rec interpret_step ip a b c xs =
     if ip + 1 >= List.length program then (a, b, c, xs)
     else
@@ -125,12 +109,17 @@ let interpret2 (program : int64 list) a b c =
   in
   interpret_step 0 a b c []
 
+let part1 input =
+  let program, a, b, c = parse input in
+  interpret program a b c |> fun (_, _, _, xs) ->
+  xs |> List.rev |> List.fold_left (sprintf "%s,%Lu") "" |> fun s ->
+  String.sub s 1 (String.length s - 1)
+
 let rinterpret program =
   let rec rinterpret_step a b c count =
     let candidates =
       [ 0L; 1L; 2L; 3L; 4L; 5L; 6L; 7L ]
-      |> List.map (fun offset ->
-             (offset, interpret2 program (add a offset) b c))
+      |> List.map (fun offset -> (offset, interpret program (add a offset) b c))
       |> List.filter (fun (_, (_, _, _, result)) ->
              List.nth program count = (result |> List.rev |> List.hd))
     in
@@ -144,14 +133,9 @@ let rinterpret program =
   rinterpret_step 0L 0L 0L (List.length program - 1)
 
 let () = parse test_case |> fun (program, _, _, _) -> disasm program
-let () = printf "\nTest 1: "
-let () = part1 test_case
-let () = printf "\n\n"
+let () = part1 test_case |> printf "Test 1: %s\n"
 let () = parse day_input |> fun (program, _, _, _) -> disasm program
-let () = printf "\nPart 1: "
-let () = part1 day_input
-let () = printf "\n\n"
-let () = parse test_case2 |> fun (program, _, _, _) -> disasm program
+let () = part1 day_input |> printf "Part 1: %s\n"
 
 let part2 input =
   let program, _, _, _ = parse input in
