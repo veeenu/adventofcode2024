@@ -66,38 +66,66 @@ let pathfind grid (tx, ty) =
   let q = Queue.create () in
   let _ = Queue.add (0, 0) q in
   let rec step xs =
-    let x, y = Queue.take q in
-    if (x, y) = (tx, ty) then ()
+    if Queue.is_empty q then false
     else
-      let neighbors =
-        [ South; East; West; North ]
-        |> List.map (fun d -> Direction.move d (x, y))
-        |> List.filter (fun (x, y) -> x >= 0 && y >= 0 && x <= tx && y <= ty)
-        |> List.filter (fun (x, y) -> not visited.(y).(x))
-        |> List.filter (fun (x, y) -> grid.(y).(x) = Normal)
-      in
-      let _ =
-        neighbors
-        |> List.iter (fun (nx, ny) ->
-               let _ = visited.(ny).(nx) <- true in
-               let _ = edges.(ny).(nx) <- (x, y) in
-               let _ = Queue.add (nx, ny) q in
-               ())
-      in
-      step ((x, y) :: xs)
+      let x, y = Queue.take q in
+      if (x, y) = (tx, ty) then true
+      else
+        let neighbors =
+          [ South; East; West; North ]
+          |> List.map (fun d -> Direction.move d (x, y))
+          |> List.filter (fun (x, y) -> x >= 0 && y >= 0 && x <= tx && y <= ty)
+          |> List.filter (fun (x, y) -> not visited.(y).(x))
+          |> List.filter (fun (x, y) -> grid.(y).(x) = Normal)
+        in
+        let _ =
+          neighbors
+          |> List.iter (fun (nx, ny) ->
+                 let _ = visited.(ny).(nx) <- true in
+                 let _ = edges.(ny).(nx) <- (x, y) in
+                 let _ = Queue.add (nx, ny) q in
+                 ())
+        in
+        step ((x, y) :: xs)
   in
-  let _ = step [] in
   let rec traverse (x, y) =
     let p = edges.(y).(x) in
     if p = (0, 0) then [ p ] else p :: traverse p
   in
-  traverse (tx, ty)
+  if step [] then Some (traverse (tx, ty)) else None
 
 let part1 input w h steps =
   let grid = simulate (make_grid (w + 1) (h + 1)) input steps in
   let () = print_grid grid in
-  let path = pathfind grid (w, h) in
+  let path = pathfind grid (w, h) |> Option.get in
   List.length path
+
+let part2 input w h =
+  let rec test_sim steps =
+    let grid = simulate (make_grid (w + 1) (h + 1)) input steps in
+    let path = pathfind grid (w, h) |> Option.is_some in
+    if path then test_sim (steps + 1) else steps + 1
+  in
+  let steps = test_sim 0 in
+  let grid_before = simulate (make_grid (w + 1) (h + 1)) input (steps - 2) in
+  let grid_after = simulate (make_grid (w + 1) (h + 1)) input (steps - 1) in
+  let grid_cmp =
+    Array.map2
+      (fun row1 row2 -> Array.map2 (fun col1 col2 -> col1 = col2) row1 row2)
+      grid_before grid_after
+  in
+  let x, y =
+    Array.find_mapi
+      (fun y row ->
+        Array.find_mapi
+          (fun x col -> if not col then Some (x, y) else None)
+          row)
+      grid_cmp
+    |> Option.get
+  in
+  sprintf "%d,%d" x y
 
 let _ = printf "Test 1: %d%!\n" (part1 (parse test_case) 6 6 12)
 let _ = printf "Part 1: %d%!\n" (part1 (parse day_input) 70 70 1024)
+let _ = printf "Test 2: %s%!\n" (part2 (parse test_case) 6 6)
+let _ = printf "Part 2: %s%!\n" (part2 (parse day_input) 70 70)
