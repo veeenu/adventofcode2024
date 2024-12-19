@@ -17,8 +17,6 @@ bbrgwb
   |> String.trim |> String.split_on_char '\n'
 
 let day_input = read_day_lines 19
-let cltos = List.to_seq >> String.of_seq
-let stocl = String.to_seq >> List.of_seq
 
 let parse input =
   let towels =
@@ -61,11 +59,6 @@ let count_combinations (towels : char list list) (design : char list) =
   in
 
   search design
-
-let print_combo (combo : char list list) =
-  let _ = printf "Combo of length %d: " (List.length combo) in
-  let _ = List.iter (fun block -> printf "%s, " (cltos block)) combo in
-  printf "\n"
 
 let part1 input =
   let towels, designs = parse input in
