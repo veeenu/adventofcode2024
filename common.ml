@@ -119,6 +119,7 @@ module Memo : sig
   val empty : unit -> ('a, 'b) Hashtbl.t
   val exists : ('a, 'b) Hashtbl.t -> 'a -> bool
   val memo : ('a, 'b) Hashtbl.t -> 'a -> ('a -> 'b) -> 'b
+  val make: ('a -> 'b) -> ('a -> 'b)
 end = struct
   let empty () = Hashtbl.create 64
   let exists = Hashtbl.mem
@@ -130,4 +131,8 @@ end = struct
         let value = fn key in
         let () = Hashtbl.replace t key value in
         value
+
+  let make fn =
+    let memo_tbl = empty () in
+    fun key -> memo memo_tbl key fn
 end
