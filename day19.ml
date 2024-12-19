@@ -30,16 +30,10 @@ let parse input =
   in
   (towels, designs)
 
-let is_prefix_memo = 
-  Memo.make (fun k ->
-      let rec is_prefix_inner = function
-        | ds, [] -> Some ds
-        | [], _ -> None
-        | d :: ds, t :: ts -> if d = t then is_prefix_inner (ds, ts) else None
-      in
-      is_prefix_inner k)
-
-let is_prefix design_block towel = is_prefix_memo (design_block, towel)
+let rec is_prefix design_block towel = match (design_block, towel) with
+  | ds, [] -> Some ds
+  | [], _ -> None
+  | d :: ds, t :: ts -> if d = t then is_prefix ds ts else None
 
 let find_a_combination (towels : char list list) (design : char list) =
   let neighbors design = towels |> List.filter_map (is_prefix design) in
@@ -53,6 +47,10 @@ let find_a_combination (towels : char list list) (design : char list) =
   in
 
   search [ design ]
+
+(* let count_combinations = Memo.make (fun design ->  *)
+(**)
+(* ) *)
 
 (* let find_combinations (towels : char list list) (design : char list) = *)
 (*   let find_design_prefixes design = *)
