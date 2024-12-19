@@ -4,6 +4,7 @@
 
 (env
   (dev
+    (ocamlopt_flags (:standard -O3))
     (flags (:standard -warn-error -A))))
 
 (executable
@@ -59,3 +60,6 @@
 
 (executable
   (name day18))
+
+(executable
+  (name day19))

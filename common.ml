@@ -9,6 +9,8 @@ let to_grid l = l |> List.map (fun x -> x |> String.to_seq |> List.of_seq)
 let range_up start count = List.init count (fun i -> start + i)
 let range_dn start count = List.init count (fun i -> start - i)
 
+let (>>) f g x = g (f x)
+
 let modulo x y =
   let result = x mod y in
   if result >= 0 then result else result + y
