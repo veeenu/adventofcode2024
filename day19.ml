@@ -42,19 +42,15 @@ let rec is_prefix design_block towel =
 let find_a_combination (towels : char list list) (design : char list) =
   let neighbors design = towels |> List.filter_map (is_prefix design) in
 
-  let q = Stack.create () in
   let rec search q =
-    if Stack.is_empty q then false
-    else
-      let next_block = Stack.pop q in
-      if List.is_empty next_block then true
-      else
-        let _ = neighbors next_block |> List.iter (fun n -> Stack.push n q) in
-        search q
+    match q with
+    | [] -> false
+    | next_block :: rest ->
+        if List.is_empty next_block then true
+        else neighbors next_block |> List.rev_append rest |> search
   in
 
-  let _ = Stack.push design q in
-  search q
+  search [ design ]
 
 (* let find_combinations (towels : char list list) (design : char list) = *)
 (*   let find_design_prefixes design = *)
