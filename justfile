@@ -10,4 +10,4 @@
   dune build
 
 @r day:
-  dune exec ./day{{day}}.exe 
+  dune exec --profile=release ./day{{day}}.exe 
