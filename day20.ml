@@ -115,7 +115,7 @@ let print_point grid p =
   ArrayGrid.print grid (fun x y col ->
       if p = (x, y) then "\x1b[31m*\x1b[0m" else string_of_cell col)
 
-let common input =
+let solve input range bound =
   let grid = parse input in
   let sp =
     ArrayGrid.items grid
@@ -134,75 +134,16 @@ let common input =
   let glitchless_path = find_path graph sp ep |> Option.get in
   let _ = printf "Default path is %d long%!\n" (List.length glitchless_path) in
 
-  (grid, graph, glitchless_path)
-
-let part1 input =
-  let grid, graph, glitchless_path = common input in
-
-  let cheat_edge (x, y) : ((int * int) * (int * int)) list =
-    let pairs =
-      ArrayGrid.neighbors grid x y
-      |> List.map (fun (x1, y1) ->
-             ArrayGrid.neighbors grid x1 y1
-             |> List.map (fun (x2, y2) -> ((x, y), (x1, y1), (x2, y2))))
-      |> List.flatten
-    in
-    pairs
-    |> List.filter_map (fun ((x, y), (x1, y1), (x2, y2)) ->
-           if
-             ArrayGrid.at grid x1 y1 = Wall
-             && ArrayGrid.at grid x2 y2 <> Wall
-             && (x, y) <> (x2, y2)
-           then Some ((x, y), (x2, y2))
-           else None)
-  in
-
-  let cheat_edges = glitchless_path |> List.map cheat_edge |> List.flatten in
-
-  let check_cheat (p1, p2) =
-    let index1 = List.find_index (( = ) p1) glitchless_path in
-    let index2 = List.find_index (( = ) p2) glitchless_path in
-    match (index1, index2) with
-    | Some i1, Some i2 -> i2 - i1 - 2 |> fun i -> if i > 0 then Some i else None
-    | _ -> None
-  in
-
-  let _ = printf "There are %d possible cheats%!\n" (List.length cheat_edges) in
-  cheat_edges
-  |> List.filter_map check_cheat
-  |> List.filter (( <= ) 100)
-  |> List.length
-
-module IMap = Map.Make (struct
-  type t = int
-
-  let compare = compare
-end)
-
-let part2 input bound =
-  let grid, graph, glitchless_path = common input in
-
   let neighborhood_points =
-    range_up (-20) 41
-    |> List.map (fun x -> range_up (-20) 41 |> List.map (fun y -> (x, y)))
+    range_up (-range) ((range * 2) + 1)
+    |> List.map (fun x ->
+           range_up (-range) ((range * 2) + 1) |> List.map (fun y -> (x, y)))
     |> List.flatten
     |> List.filter (fun (x, y) ->
-           (x, y) <> (0, 0) && abs x + abs y <= 20 && abs x + abs y > 1)
+           (x, y) <> (0, 0) && abs x + abs y <= range && abs x + abs y > 1)
   in
 
-  let _ =
-    range_up (-20) 41
-    |> List.iter (fun y ->
-           let _ =
-             range_up (-20) 41
-             |> List.iter (fun x ->
-                    printf "%c"
-                      (if List.mem (x, y) neighborhood_points then '*' else '-'))
-           in
-           printf "\n")
-  in
-
-  let giga_cheat_edges (x, y) =
+  let cheat_edges (x, y) =
     neighborhood_points
     |> List.map (fun (dx, dy) -> (x + dx, y + dy))
     |> List.filter (fun (x1, y1) ->
@@ -212,9 +153,7 @@ let part2 input bound =
     |> List.sort_uniq compare
   in
 
-  let giga_cheat_edges =
-    glitchless_path |> List.map giga_cheat_edges |> List.flatten
-  in
+  let cheat_edges = glitchless_path |> List.map cheat_edges |> List.flatten in
 
   let check_cheat (p1, p2) =
     let index1 = List.find_index (( = ) p1) glitchless_path in
@@ -226,31 +165,18 @@ let part2 input bound =
     | _ -> None
   in
 
-  let _ =
-    printf "There are %d possible cheats%!\n" (List.length giga_cheat_edges)
+  let _ = printf "There are %d possible cheats%!\n" (List.length cheat_edges) in
+
+  let cheats =
+    cheat_edges |> List.filter_map check_cheat |> List.filter (( <= ) bound)
   in
 
-  let start = Sys.time () in
-  let giga_cheats =
-    giga_cheat_edges
-    |> List.filter_map check_cheat
-    |> List.filter (( <= ) bound)
-  in
-  let _ = printf "giga_cheats took %.3f\n" (Sys.time () -. start) in
+  cheats |> List.length
 
-  let _ =
-    giga_cheats
-    |> List.fold_left
-         (fun acc k ->
-           IMap.update k
-             (function Some i -> Some (i + 1) | None -> Some 1)
-             acc)
-         IMap.empty
-    |> IMap.iter (fun k v -> printf "%d cheats that save %d\n" v k)
-  in
-  giga_cheats |> List.length
+let part1 input = solve input 2 
+let part2 input = solve input 20
 
-let () = part1 test_case |> printf "Test 1: %d%!\n"
-let () = part1 day_input |> printf "Part 1: %d%!\n"
+let () = part1 test_case 0 |> printf "Test 1: %d%!\n"
+let () = part1 day_input 100 |> printf "Part 1: %d%!\n"
 let () = part2 test_case 50 |> printf "Test 2: %d%!\n"
 let () = part2 day_input 100 |> printf "Part 2: %d%!\n"
