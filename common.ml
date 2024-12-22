@@ -14,6 +14,10 @@ let modulo x y =
   let result = x mod y in
   if result >= 0 then result else result + y
 
+let rec pairs = function
+  | x1 :: x2 :: xs -> (x1, x2) :: pairs (x2 :: xs)
+  | _ -> []
+
 let rec take_while pred l =
   match l with
   | [] -> []
