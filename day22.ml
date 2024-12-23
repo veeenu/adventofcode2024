@@ -30,7 +30,7 @@ let rec evolve_times count secret =
 let part1 input =
   parse input |> List.map (evolve_times 2000) |> List.fold_left ( + ) 0
 
-let rec prices count secret =
+let prices count secret =
   let rec aux count secret =
     if count = 0 then [] else secret :: aux (count - 1) (evolve secret)
   in
