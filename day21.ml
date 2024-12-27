@@ -199,7 +199,6 @@ let shortest_paths_numpad =
   all_numpad_keys
   |> List.map (fun k1 -> all_numpad_keys |> List.map (fun k2 -> (k1, k2)))
   |> List.flatten
-  (* |> List.filter (fun (k1, k2) -> k1 <> k2) *)
   |> List.map (fun (k1, k2) -> ((k1, k2), bfs numpad_graph k1 k2))
   |> List.map (fun (k, v) -> (k, List.map convert_to_dirpad v))
 
@@ -231,53 +230,37 @@ let print_numpad_path = print_path shortest_paths_numpad string_of_numpad
 let print_dirpad_path = print_path shortest_paths_dirpad string_of_dirpad
 
 let find_shortest_path depth n1 n2 =
-  (* let _ = print_numpad_path n1 n2 in *)
   let paths = shortest_paths_numpad |> List.assoc (n1, n2) |> List.map snd in
+  let memo = Hashtbl.create 10 in
   let rec aux depth k =
-    (* let _ = printf "Depth %d\n" depth in *)
-    if depth = 0 then 1
-    else
-      (* let _ = *)
-      (*   printf "Finding (%s, %s) %d%!\n" *)
-      (*     (fst k |> string_of_dirpad) *)
-      (*     (snd k |> string_of_dirpad) *)
-      (*     depth *)
-      (* in *)
-      (* let _ = print_dirpad_path (fst k) (snd k) in *)
-      let paths = shortest_paths_dirpad |> List.assoc k |> List.map snd in
-      let subpaths =
-        paths
-        |> List.map (fun path ->
-               DA :: path |> pairs
-               |> List.map (aux (depth - 1))
-               |> List.fold_left ( + ) 0)
-      in
-      let c =
-        match subpaths with [] -> 1 | c -> List.fold_left min max_int c
-      in
-      (* let _ = printf "At depth %d got value %d\n" depth c in *)
-      c
+    match Hashtbl.find_opt memo (depth, k) with
+    | Some c -> c
+    | None ->
+        let aux_inner depth k =
+          if depth = 0 then 1
+          else
+            let paths = shortest_paths_dirpad |> List.assoc k |> List.map snd in
+            let subpaths =
+              paths
+              |> List.map (fun path ->
+                     DA :: path |> pairs
+                     |> List.map (aux (depth - 1))
+                     |> List.fold_left ( + ) 0)
+            in
+            match subpaths with [] -> 1 | c -> List.fold_left min max_int c
+        in
+        let c = aux_inner depth k in
+        let _ = Hashtbl.replace memo (depth, k) c in
+        c
   in
   paths
   |> List.map (fun path ->
          DA :: path |> pairs |> List.map (aux depth) |> List.fold_left ( + ) 0)
   |> List.fold_left min max_int
 
-(* let _ = print_numpad_path NA N0 *)
-(* let _ = print_numpad_path N0 N2 *)
-(* let _ = print_numpad_path N2 N9 *)
-(* let _ = print_numpad_path N9 NA *)
-
 let find count keys =
   NA :: keys |> pairs
-  |> List.map (fun (n1, n2) ->
-         (* let _ = *)
-         (*   printf "\nFinding shortest path %s->%s\n" (string_of_numpad n1) *)
-         (*     (string_of_numpad n2) *)
-         (* in *)
-         let pl = find_shortest_path count n1 n2 in
-         (* let _ = printf "It has length %d\n" pl in *)
-         pl)
+  |> List.map (fun (n1, n2) -> find_shortest_path count n1 n2)
   |> List.fold_left ( + ) 0
 
 let compute_complexity count input =
@@ -287,6 +270,7 @@ let compute_complexity count input =
 
 let part1 input = input |> parse |> compute_complexity 2
 let part2 input = input |> parse |> compute_complexity 25
-
-let _ = part1 test_case |> printf "Test 1: %d\n"
-let _ = part1 day_input |> printf "Part 1: %d\n"
+let _ = part1 test_case |> printf "Test 1: %d%!\n"
+let _ = part1 day_input |> printf "Part 1: %d%!\n"
+let _ = part2 test_case |> printf "Test 2: %d%!\n"
+let _ = part2 day_input |> printf "Part 2: %d%!\n"
