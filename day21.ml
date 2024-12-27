@@ -210,7 +210,6 @@ let shortest_paths_dirpad =
   all_dirpad_keys
   |> List.map (fun k1 -> all_dirpad_keys |> List.map (fun k2 -> (k1, k2)))
   |> List.flatten
-  (* |> List.filter (fun (k1, k2) -> k1 <> k2) *)
   |> List.map (fun (k1, k2) -> ((k1, k2), bfs dirpad_graph k1 k2))
   |> List.map (fun (k, v) -> (k, List.map convert_to_dirpad v))
 
